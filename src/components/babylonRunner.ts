@@ -633,7 +633,7 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
     setActiveRoadTexture(packagedTexture);
   });
 
-  const textureUrl = `${textureRoot}road_texture.jpg`;
+  const textureUrl = `${textureRoot}fallback-road-texture.png`;
 
   roadTexture = new BABYLON.Texture(
     textureUrl,
