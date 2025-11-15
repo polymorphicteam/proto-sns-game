@@ -1,15 +1,15 @@
 // src/components/babylonRunner.ts
-// Versione modulare – orchestratore
-
 import * as BABYLON from "babylonjs";
 import "babylonjs-loaders";
 
 import { createScene } from "./sceneSetup";
+import { createLighting } from "./lightingSetup";
+import { createCamera } from "./cameraSetup";
 import { getAssetRoots } from "./assetPaths";
 import { setupPlayerController } from "./playerController";
 import { setupEnvironment } from "./environment";
 
-// Draco configuration identica alla versione originale
+// Draco configuration (unchanged)
 if (BABYLON.DracoCompression) {
   BABYLON.DracoCompression.Configuration = {
     decoder: {
@@ -20,14 +20,8 @@ if (BABYLON.DracoCompression) {
   };
 }
 
-/**
- * RUNNER 3D – funzione standalone.
- */
 export function babylonRunner(canvas: HTMLCanvasElement) {
   if (!canvas) return;
-
-  const maxHeight = 3840;
-  const maxWidth = 2160;
 
   let engine: BABYLON.Engine | null = null;
 
@@ -38,64 +32,52 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   };
 
   const applyCanvasSize = () => {
-    // Aspect ratio verticale 9:16
     const aspect = 9 / 16;
 
     const maxW = window.innerWidth;
     const maxH = window.innerHeight;
 
-    // Primo tentativo: usare tutta l’altezza
     let height = maxH;
     let width = height * aspect;
 
-    // Se la larghezza eccede lo schermo → ridurre
     if (width > maxW) {
       width = maxW;
       height = width / aspect;
     }
 
-    // Limita eventuali dimensioni esagerate (come nel codice originale, anche se i const non venivano usati)
-    if (height > maxHeight) height = maxHeight;
-    if (width > maxWidth) width = maxWidth;
-
-    // Applica dimensioni reali a Babylon
     canvas.width = width;
     canvas.height = height;
 
-    // Applica dimensioni visuali CSS
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
 
-    // Aggiorna Babylon
     engine?.resize();
     updateHardwareScaling();
   };
 
-  // Prima sizing del canvas
   applyCanvasSize();
 
-  // Creazione scena/engine/camera/shadow
-  const {
-    engine: createdEngine,
-    scene,
-    camera,
-    shadowGenerator,
-  } = createScene(canvas);
+  // ---- Scene + Engine ----
+  const { engine: createdEngine, scene } = createScene(canvas);
   engine = createdEngine;
 
   updateHardwareScaling();
 
-  // Asset paths (identici alla versione originale)
+  // ---- Lighting ----
+  const { shadowGenerator } = createLighting(scene);
+
+  // ---- Camera ----
+  const { camera } = createCamera(scene, canvas);
+
+  // ---- Assets ----
   const { modelRoot, textureRoot } = getAssetRoots();
 
-  // Gestione velocità di scroll condivisa tra player e ambiente
+  // Scroll speed signal shared between player & environment
   let currentScrollSpeed = 0;
-  const setScrollSpeed = (speed: number) => {
-    currentScrollSpeed = speed;
-  };
+  const setScrollSpeed = (s: number) => (currentScrollSpeed = s);
   const getScrollSpeed = () => currentScrollSpeed;
 
-  // ENVIRONMENT (ground + buildings + scroll)
+  // ---- Environment ----
   const environment = setupEnvironment(
     scene,
     shadowGenerator,
@@ -104,7 +86,7 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
     getScrollSpeed
   );
 
-  // PLAYER (state machine + input + animazioni)
+  // ---- Player ----
   const player = setupPlayerController(
     scene,
     camera,
@@ -113,13 +95,13 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
     setScrollSpeed
   );
 
-  // MAIN RENDER LOOP (identico: garantiamo ensureIdle + render)
+  // ---- Main loop ----
   engine.runRenderLoop(() => {
     player.ensureIdle();
     scene.render();
   });
 
-  // EVENT HANDLERS
+  // ---- Events ----
   const onResize = () => applyCanvasSize();
   const onKeyDown = (ev: KeyboardEvent) => player.handleKeyDown(ev);
   const onKeyUp = (ev: KeyboardEvent) => player.handleKeyUp(ev);
@@ -128,7 +110,7 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
 
-  // CLEANUP on page unload (stessa logica della tua versione)
+  // ---- Cleanup ----
   window.addEventListener("beforeunload", () => {
     window.removeEventListener("resize", onResize);
     window.removeEventListener("keydown", onKeyDown);
