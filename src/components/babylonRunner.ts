@@ -6,7 +6,8 @@ import { createScene } from "./sceneSetup";
 import { createLighting } from "./lightingSetup";
 import { createCamera } from "./cameraSetup";
 import { getAssetRoots } from "./assetPaths";
-import { setupPlayerController } from "./playerController";
+import { setupPlayerController } from "./player/playerController";
+
 import { setupEnvironment } from "./environment";
 
 // Draco configuration (unchanged)
