@@ -8,7 +8,8 @@ import { createCamera } from "./cameraSetup";
 import { getAssetRoots } from "./assetPaths";
 import { setupPlayerController } from "./player/playerController";
 
-import { setupEnvironment } from "./environment";
+import { setupEnvironment } from "./environment/environment";
+
 
 // Draco configuration (unchanged)
 if (BABYLON.DracoCompression) {
