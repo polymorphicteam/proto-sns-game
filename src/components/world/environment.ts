@@ -3,6 +3,7 @@ import * as BABYLON from "babylonjs";
 
 import { createWorldSegments, WorldSegments } from "./worldSegments";
 import { createWorldScroll, WorldScrollController } from "./worldScroll";
+import { createObstacleSystem, ObstacleController } from "./obstacleSystem";
 
 
 
@@ -10,7 +11,7 @@ export interface EnvironmentController {
   dispose(): void;
 }
 
-// ⚠️ Must match ORIGINAL signature exactly
+// NOTE: Must match ORIGINAL signature exactly
 export function setupEnvironment(
   scene: BABYLON.Scene,
   shadowGenerator: BABYLON.ShadowGenerator,
@@ -39,9 +40,23 @@ export function setupEnvironment(
   );
 
   // ------------------------------------------------------
-  // 3) DISPOSE → removes world + scroll observers
+  // 3) OBSTACLE SYSTEM (jump / duck / platform)
+  // ------------------------------------------------------
+  const obstacleController: ObstacleController = createObstacleSystem(
+    scene,
+    shadowGenerator,
+    getScrollSpeed,
+    {
+      laneWidth: 25,
+      laneCount: 3,
+    }
+  );
+
+  // ------------------------------------------------------
+  // 4) DISPOSE removes world + scroll observers
   // ------------------------------------------------------
   function dispose() {
+    obstacleController.dispose();
     scrollController.dispose();
     world.dispose();
   }
