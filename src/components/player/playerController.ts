@@ -65,6 +65,45 @@ export function setupPlayerController(
   // ------------------------------------------
   let playerRoot: BABYLON.TransformNode | null = null;
   let stateMachine: ReturnType<typeof createPlayerStateMachine> | null = null;
+  let baseY = 0;
+
+  // ------------------------------------------
+  // KINEMATIC JUMP (parabolic, no physics engine)
+  // ------------------------------------------
+  const jumpMotion = {
+    active: false,
+    velocity: 0,
+    gravity: -180, // units/sec^2
+    jumpStrength: 70, // initial vertical velocity
+  };
+
+  function startJumpMotion() {
+    if (!playerRoot) return;
+    if (jumpMotion.active) return;
+    jumpMotion.active = true;
+    jumpMotion.velocity = jumpMotion.jumpStrength;
+  }
+
+  function updateJumpMotion(dt: number) {
+    if (!playerRoot) return;
+
+    if (!jumpMotion.active) {
+      if (playerRoot.position.y !== baseY) playerRoot.position.y = baseY;
+      return;
+    }
+
+    jumpMotion.velocity += jumpMotion.gravity * dt;
+    playerRoot.position.y += jumpMotion.velocity * dt;
+
+    if (playerRoot.position.y <= baseY) {
+      playerRoot.position.y = baseY;
+      jumpMotion.active = false;
+      jumpMotion.velocity = 0;
+      if (!debugOverrideState && stateMachine) {
+        stateMachine.setPlayerState("Run", true);
+      }
+    }
+  }
 
   // ------------------------------------------
   // LOAD MODEL
@@ -76,6 +115,7 @@ export function setupPlayerController(
     shadowGenerator,
     (info) => {
       playerRoot = info.playerRoot;
+      baseY = playerRoot.position.y;
 
       stateMachine = createPlayerStateMachine({
         scene,
@@ -216,8 +256,9 @@ export function setupPlayerController(
     // -----------------------
     // JUMP
     // -----------------------
-    if (keyState.jump) {
+    if (keyState.jump && !jumpMotion.active) {
       stateMachine.setPlayerState("Jump");
+      startJumpMotion();
       keyState.jump = false;
       return;
     }
@@ -243,6 +284,7 @@ export function setupPlayerController(
     if (!playerRoot || !stateMachine) return;
 
     updateMovementState();
+    const dt = scene.getEngine().getDeltaTime() / 1000;
 
     // Lerp corsie
     playerRoot.position.x = BABYLON.Scalar.Lerp(
@@ -250,6 +292,8 @@ export function setupPlayerController(
       targetX,
       lateralLerp
     );
+
+    updateJumpMotion(dt);
 
     // Quando abbiamo raggiunto la corsia target, rientriamo in Run
     if (!debugOverrideState) {

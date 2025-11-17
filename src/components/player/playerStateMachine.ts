@@ -153,7 +153,7 @@ export function createPlayerStateMachine(
     setScrollSpeed(config.scroll);
 
     const handleEnd = () => {
-      if (next === "Slide" || next === "Jump") setPlayerState("Run", true);
+      if (next === "Slide") setPlayerState("Run", true);
 
       // 🔥 FIX: dopo GETUP torniamo subito a RUN
       else if (next === "Getup") setPlayerState("Run", true);
