@@ -21,13 +21,18 @@ export function setupPlayerController(
   shadowGenerator: BABYLON.ShadowGenerator,
   setScrollSpeed: (speed: number) => void
 ): PlayerController {
-  // INTERNAL STATE
+  // ------------------------------------------
+  // INPUT STATE
+  // ------------------------------------------
   const keyState = {
     forward: false,
-    left: false,
-    right: false,
     slide: false,
     jump: false,
+
+    // NOTA: left/right non muovono più continuamente
+    // ora servono solo come trigger per lane switching
+    leftPressed: false,
+    rightPressed: false
   };
 
   let debugOverrideState: PlayerState | null = null;
@@ -40,35 +45,55 @@ export function setupPlayerController(
     Digit5: "Run_Idle",
   } as const;
 
-  // LATERAL MOTION VARIABLES
-  const lateralRange = 40;
-  const lateralSpeed = 40;
-  const lateralReturnSpeed = 40;
+  // ------------------------------------------
+  // LANE SYSTEM CONFIG
+  // ------------------------------------------
+  const laneWidth = 25;          // distanza tra le corsie
+  const maxLane = 1;            // corsie = -1, 0, +1
+  let currentLane = 0;          // corsia attuale del player
+  let targetX = 0;              // X da raggiungere
+  const lateralLerp = 0.12;     // velocità interpolazione
 
-  function lateralClamp(v: number) {
-    return Math.max(-lateralRange, Math.min(lateralRange, v));
-  }
-
-  const lateralState = { target: 0 };
-
-  // PLAYER DATA
+  // ------------------------------------------
+  // PLAYER ROOT HANDLE
+  // ------------------------------------------
   let playerRoot: BABYLON.TransformNode | null = null;
+  let stateMachine: ReturnType<typeof createPlayerStateMachine> | null = null;
 
-  // STATE MACHINE (lazy init)
-  let stateMachine: ReturnType<typeof createPlayerStateMachine> | null =
-    null;
+  // ------------------------------------------
+  // LOAD MODEL
+  // ------------------------------------------
+  loadPlayerModel(
+    scene,
+    camera,
+    modelRoot,
+    shadowGenerator,
+    (info) => {
+      playerRoot = info.playerRoot;
 
-  // --------------------------
-  // INPUT: KEY DOWN
-  // --------------------------
+      stateMachine = createPlayerStateMachine({
+        scene,
+        playerRoot: info.playerRoot,
+        playerSkeleton: info.playerSkeleton,
+        animationGroup: info.playerAnimationGroup,
+        setScrollSpeed,
+      });
+
+      ensureIdle();
+    }
+  );
+
+  // ------------------------------------------
+  // INPUT HANDLING
+  // ------------------------------------------
   function handleKeyDown(event: KeyboardEvent) {
+    // Debug state override
     const debugState = debugKeyMap[event.code as keyof typeof debugKeyMap];
     if (debugState) {
       event.preventDefault();
       triggerDebugState(debugState);
       return;
     }
-
     if (event.code === "Digit0") {
       event.preventDefault();
       triggerDebugState(null);
@@ -80,18 +105,24 @@ export function setupPlayerController(
       case "KeyW":
         keyState.forward = true;
         break;
+
       case "ArrowLeft":
       case "KeyA":
-        keyState.left = true;
+        keyState.leftPressed = true;
+        performLaneSwitch(1);
         break;
+
       case "ArrowRight":
       case "KeyD":
-        keyState.right = true;
+        keyState.rightPressed = true;
+        performLaneSwitch(-1);
         break;
+
       case "ArrowDown":
       case "KeyS":
         keyState.slide = true;
         break;
+
       case "Space":
         event.preventDefault();
         keyState.jump = true;
@@ -99,43 +130,44 @@ export function setupPlayerController(
     }
   }
 
-  // --------------------------
-  // INPUT: KEY UP
-  // --------------------------
   function handleKeyUp(event: KeyboardEvent) {
     switch (event.code) {
       case "ArrowUp":
       case "KeyW":
         keyState.forward = false;
         break;
+
       case "ArrowLeft":
       case "KeyA":
-        keyState.left = false;
+        keyState.leftPressed = false;
         break;
+
       case "ArrowRight":
       case "KeyD":
-        keyState.right = false;
+        keyState.rightPressed = false;
         break;
+
       case "ArrowDown":
       case "KeyS":
         keyState.slide = false;
         break;
+
       case "Space":
-        event.preventDefault();
         keyState.jump = false;
         break;
     }
   }
 
-  // --------------------------------
-  // DEBUG OVERRIDE STATE
-  // --------------------------------
+  // ------------------------------------------
+  // DEBUG OVERRIDE
+  // ------------------------------------------
   function triggerDebugState(state: PlayerState | null) {
     keyState.forward = false;
-    keyState.left = false;
-    keyState.right = false;
     keyState.slide = false;
     keyState.jump = false;
+
+    keyState.leftPressed = false;
+    keyState.rightPressed = false;
 
     debugOverrideState = state;
 
@@ -146,18 +178,32 @@ export function setupPlayerController(
     }
   }
 
-  // --------------------------------
-  // MAIN INPUT → STATE MACHINE LOGIC
-  // --------------------------------
-  function updateMovementState() {
+  // ------------------------------------------
+  // LANE SWITCH FUNCTION
+  // ------------------------------------------
+  function performLaneSwitch(dir: number) {
     if (!playerRoot || !stateMachine) return;
 
-    if (debugOverrideState) return;
+    const previousLane = currentLane;
+    currentLane = Math.min(maxLane, Math.max(-maxLane, currentLane + dir));
 
-    const moveLeft = keyState.left && !keyState.right;
-    const moveRight = keyState.right && !keyState.left;
-    const shouldSlide = keyState.slide;
-    const shouldRun = keyState.forward;
+    // Nessuna corsia disponibile → non fare animazione
+    if (previousLane === currentLane) return;
+
+    // Nuova X target
+    targetX = currentLane * laneWidth;
+
+    // Animazioni di strafe come transizione
+    if (dir > 0) stateMachine.setPlayerState("Strafe_R");
+    else stateMachine.setPlayerState("Strafe_L");
+  }
+
+  // ------------------------------------------
+  // STATE MACHINE UPDATE
+  // ------------------------------------------
+  function updateMovementState() {
+    if (!playerRoot || !stateMachine) return;
+    if (debugOverrideState) return;
 
     let triggeredJump = false;
 
@@ -166,88 +212,46 @@ export function setupPlayerController(
       triggeredJump = true;
       keyState.jump = false;
     }
-
     if (triggeredJump) return;
 
-    if (shouldSlide) stateMachine.setPlayerState("Slide");
-    else if (moveLeft) stateMachine.setPlayerState("Strafe_L");
-    else if (moveRight) stateMachine.setPlayerState("Strafe_R");
-    else if (shouldRun) stateMachine.setPlayerState("Run");
-    else stateMachine.setPlayerState("Idle");
+    if (keyState.slide) {
+      stateMachine.setPlayerState("Slide");
+      return;
+    }
+
+    if (keyState.forward) {
+      stateMachine.setPlayerState("Run");
+    } else {
+      stateMachine.setPlayerState("Idle");
+    }
   }
 
-  // --------------------------------
-  // LATERAL MOTION OBSERVER
-  // --------------------------------
-  const motionObserver = scene.onBeforeRenderObservable.add(() => {
-    const dt = scene.getEngine().getDeltaTime() / 1000;
-
-    updateMovementState();
+  // ------------------------------------------
+  // MAIN UPDATE LOOP
+  // ------------------------------------------
+  scene.onBeforeRenderObservable.add(() => {
     if (!playerRoot) return;
 
-    const pos = playerRoot.position.clone();
+    updateMovementState();
 
-    if (keyState.left && !keyState.right) {
-      lateralState.target = lateralClamp(
-        lateralState.target - lateralSpeed * dt
-      );
-    } else if (keyState.right && !keyState.left) {
-      lateralState.target = lateralClamp(
-        lateralState.target + lateralSpeed * dt
-      );
-    } else {
-      const dir = Math.sign(-lateralState.target);
-      const adj = dir * lateralReturnSpeed * dt;
-      if (Math.abs(adj) > Math.abs(lateralState.target)) {
-        lateralState.target = 0;
-      } else {
-        lateralState.target += adj;
-      }
-    }
-
-    pos.x = lateralState.target;
-    playerRoot.position = pos;
+    // Lerp verso la X della corsia
+    playerRoot.position.x = BABYLON.Scalar.Lerp(
+      playerRoot.position.x,
+      targetX,
+      lateralLerp
+    );
   });
 
-  // --------------------------------
-  // LOAD PLAYER MODEL
-  // --------------------------------
-  loadPlayerModel(
-    scene,
-    camera,
-    modelRoot,
-    shadowGenerator,
-    (model) => {
-      playerRoot = model.playerRoot;
-
-      // CREATE STATE MACHINE
-      stateMachine = createPlayerStateMachine({
-        scene,
-        playerRoot: model.playerRoot,
-        playerSkeleton: model.playerSkeleton,
-        animationGroup: model.playerAnimationGroup,
-        setScrollSpeed,
-      });
-
-      stateMachine.ensureIdle();
-    }
-  );
-
-  // --------------------------------
-  // DISPOSE
-  // --------------------------------
-  function dispose() {
-    if (motionObserver) {
-      scene.onBeforeRenderObservable.remove(motionObserver);
-    }
-    if (stateMachine) stateMachine.dispose();
-    playerRoot?.dispose();
+  function ensureIdle() {
+    if (stateMachine) stateMachine.ensureIdle();
   }
+
+  function dispose() {}
 
   return {
     handleKeyDown,
     handleKeyUp,
-    ensureIdle: () => stateMachine?.ensureIdle(),
+    ensureIdle,
     dispose,
   };
 }
