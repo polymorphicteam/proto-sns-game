@@ -10,6 +10,7 @@ import {
 export interface PlayerController {
   handleKeyDown(event: KeyboardEvent): void;
   handleKeyUp(event: KeyboardEvent): void;
+  startGame(): void;
   ensureIdle(): void;
   dispose(): void;
 }
@@ -19,7 +20,8 @@ export function setupPlayerController(
   camera: BABYLON.ArcRotateCamera,
   modelRoot: string,
   shadowGenerator: BABYLON.ShadowGenerator,
-  setScrollSpeed: (speed: number) => void
+  setScrollSpeed: (speed: number) => void,
+  onReady?: () => void
 ): PlayerController {
   // ------------------------------------------
   // INPUT STATE
@@ -53,12 +55,10 @@ export function setupPlayerController(
   const lateralLerp = 0.12;
 
   // ------------------------------------------
-  // GAME FLOW (start → run)
+  // GAME FLOW
   // ------------------------------------------
   let gameStarted = false;
-  let startTimerActive = false;
-  let startTime = 0;
-  const START_DELAY = 3000; // 3 secondi
+  let requestedStart = false;
 
   // ------------------------------------------
   // PLAYER ROOT + STATE MACHINE
@@ -87,9 +87,9 @@ export function setupPlayerController(
 
       ensureIdle();
 
-      // Dopo load → parte timer Idle → Run
-      startTimerActive = true;
-      startTime = performance.now();
+      if (requestedStart) startGame();
+
+      onReady?.();
     }
   );
 
@@ -231,17 +231,9 @@ export function setupPlayerController(
     }
 
     // -----------------------
-    // START TIMER INITIALE
+    // GAME START (gestito da babylonRunner)
     // -----------------------
-    if (startTimerActive) {
-      const now = performance.now();
-      if (now - startTime >= START_DELAY) {
-        startTimerActive = false;
-        gameStarted = true;
-        stateMachine.setPlayerState("Run", true);
-      }
-      return; // resta in Idle finché non scade il timer
-    }
+    if (!gameStarted) return;
 
     // -----------------------
     // LOGICA ENDLESS:
@@ -261,16 +253,6 @@ export function setupPlayerController(
 
     updateMovementState();
 
-    // Restart idle → run dopo restart (solo se Idle NON da debug)
-    if (
-      !startTimerActive &&
-      stateMachine?.currentState === "Idle" &&
-      !gameStarted
-    ) {
-      startTimerActive = true;
-      startTime = performance.now();
-    }
-
     // Lerp corsie
     playerRoot.position.x = BABYLON.Scalar.Lerp(
       playerRoot.position.x,
@@ -278,6 +260,12 @@ export function setupPlayerController(
       lateralLerp
     );
   });
+
+  function startGame() {
+    requestedStart = true;
+    gameStarted = true;
+    if (stateMachine) stateMachine.setPlayerState("Run", true);
+  }
 
   function ensureIdle() {
     if (stateMachine) stateMachine.ensureIdle();
@@ -288,6 +276,7 @@ export function setupPlayerController(
   return {
     handleKeyDown,
     handleKeyUp,
+    startGame,
     ensureIdle,
     dispose,
   };

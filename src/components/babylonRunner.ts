@@ -109,12 +109,23 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   // --------------------------------------------
   // PLAYER
   // --------------------------------------------
+  const START_DELAY = 3000;
+  let startTimeoutId: number | null = null;
+
+  const startGameAfterDelay = () => {
+    if (startTimeoutId !== null) {
+      clearTimeout(startTimeoutId);
+    }
+    startTimeoutId = window.setTimeout(() => player.startGame(), START_DELAY);
+  };
+
   const player = setupPlayerController(
     scene,
     camera,
     modelRoot,
     shadowGenerator,
-    setScrollSpeed
+    setScrollSpeed,
+    startGameAfterDelay
   );
 
   // --------------------------------------------
@@ -146,6 +157,7 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
 
     environment.dispose();
     player.dispose();
+    if (startTimeoutId !== null) clearTimeout(startTimeoutId);
 
     BABYLON.Logger.ClearLogCache();
     BABYLON.Logger.LogLevels = BABYLON.Logger.AllLogLevel;
