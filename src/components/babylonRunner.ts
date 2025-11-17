@@ -10,8 +10,6 @@ import { setupPlayerController } from "./player/playerController";
 
 import { setupEnvironment } from "./world/environment";
 
-
-
 // Draco configuration (unchanged)
 if (BABYLON.DracoCompression) {
   BABYLON.DracoCompression.Configuration = {
@@ -28,12 +26,18 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
 
   let engine: BABYLON.Engine | null = null;
 
+  // --------------------------------------------
+  // HARDWARE SCALING (risoluzione dinamica)
+  // --------------------------------------------
   const updateHardwareScaling = () => {
     if (!engine) return;
     const resolutionScale = Math.max(1, canvas.height / 1080);
     engine.setHardwareScalingLevel(Math.min(2.5, resolutionScale));
   };
 
+  // --------------------------------------------
+  // RESPONSIVE CANVAS
+  // --------------------------------------------
   const applyCanvasSize = () => {
     const aspect = 9 / 16;
 
@@ -58,29 +62,42 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
     updateHardwareScaling();
   };
 
+  // First sizing
   applyCanvasSize();
 
-  // ---- Scene + Engine ----
+  // --------------------------------------------
+  // SCENE + ENGINE
+  // --------------------------------------------
   const { engine: createdEngine, scene } = createScene(canvas);
   engine = createdEngine;
 
   updateHardwareScaling();
 
-  // ---- Lighting ----
+  // --------------------------------------------
+  // LIGHTING
+  // --------------------------------------------
   const { shadowGenerator } = createLighting(scene);
 
-  // ---- Camera ----
+  // --------------------------------------------
+  // CAMERA
+  // --------------------------------------------
   const { camera } = createCamera(scene, canvas);
 
-  // ---- Assets ----
+  // --------------------------------------------
+  // ASSETS ROOTS
+  // --------------------------------------------
   const { modelRoot, textureRoot } = getAssetRoots();
 
-  // Scroll speed signal shared between player & environment
+  // --------------------------------------------
+  // SCROLL SPEED SIGNAL
+  // --------------------------------------------
   let currentScrollSpeed = 0;
   const setScrollSpeed = (s: number) => (currentScrollSpeed = s);
   const getScrollSpeed = () => currentScrollSpeed;
 
-  // ---- Environment ----
+  // --------------------------------------------
+  // ENVIRONMENT
+  // --------------------------------------------
   const environment = setupEnvironment(
     scene,
     shadowGenerator,
@@ -89,7 +106,9 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
     getScrollSpeed
   );
 
-  // ---- Player ----
+  // --------------------------------------------
+  // PLAYER
+  // --------------------------------------------
   const player = setupPlayerController(
     scene,
     camera,
@@ -98,13 +117,17 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
     setScrollSpeed
   );
 
-  // ---- Main loop ----
+  // --------------------------------------------
+  // MAIN LOOP
+  // --------------------------------------------
   engine.runRenderLoop(() => {
-    player.ensureIdle();
+    player.ensureIdle(); // mantiene l'animazione idle attiva finché serve
     scene.render();
   });
 
-  // ---- Events ----
+  // --------------------------------------------
+  // EVENTS
+  // --------------------------------------------
   const onResize = () => applyCanvasSize();
   const onKeyDown = (ev: KeyboardEvent) => player.handleKeyDown(ev);
   const onKeyUp = (ev: KeyboardEvent) => player.handleKeyUp(ev);
@@ -113,7 +136,9 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
 
-  // ---- Cleanup ----
+  // --------------------------------------------
+  // CLEANUP
+  // --------------------------------------------
   window.addEventListener("beforeunload", () => {
     window.removeEventListener("resize", onResize);
     window.removeEventListener("keydown", onKeyDown);

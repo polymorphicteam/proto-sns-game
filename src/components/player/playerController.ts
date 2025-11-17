@@ -25,14 +25,12 @@ export function setupPlayerController(
   // INPUT STATE
   // ------------------------------------------
   const keyState = {
-    forward: false,
+    forward: false, // NON USATO più per il movimento
     slide: false,
     jump: false,
 
-    // NOTA: left/right non muovono più continuamente
-    // ora servono solo come trigger per lane switching
     leftPressed: false,
-    rightPressed: false
+    rightPressed: false,
   };
 
   let debugOverrideState: PlayerState | null = null;
@@ -48,14 +46,22 @@ export function setupPlayerController(
   // ------------------------------------------
   // LANE SYSTEM CONFIG
   // ------------------------------------------
-  const laneWidth = 25;          // distanza tra le corsie
-  const maxLane = 1;            // corsie = -1, 0, +1
-  let currentLane = 0;          // corsia attuale del player
-  let targetX = 0;              // X da raggiungere
-  const lateralLerp = 0.12;     // velocità interpolazione
+  const laneWidth = 25;
+  const maxLane = 1;
+  let currentLane = 0;
+  let targetX = 0;
+  const lateralLerp = 0.12;
 
   // ------------------------------------------
-  // PLAYER ROOT HANDLE
+  // GAME FLOW (start → run)
+  // ------------------------------------------
+  let gameStarted = false;
+  let startTimerActive = false;
+  let startTime = 0;
+  const START_DELAY = 3000; // 3 secondi
+
+  // ------------------------------------------
+  // PLAYER ROOT + STATE MACHINE
   // ------------------------------------------
   let playerRoot: BABYLON.TransformNode | null = null;
   let stateMachine: ReturnType<typeof createPlayerStateMachine> | null = null;
@@ -80,6 +86,10 @@ export function setupPlayerController(
       });
 
       ensureIdle();
+
+      // Dopo load → parte timer Idle → Run
+      startTimerActive = true;
+      startTime = performance.now();
     }
   );
 
@@ -87,7 +97,6 @@ export function setupPlayerController(
   // INPUT HANDLING
   // ------------------------------------------
   function handleKeyDown(event: KeyboardEvent) {
-    // Debug state override
     const debugState = debugKeyMap[event.code as keyof typeof debugKeyMap];
     if (debugState) {
       event.preventDefault();
@@ -101,10 +110,12 @@ export function setupPlayerController(
     }
 
     switch (event.code) {
-      case "ArrowUp":
-      case "KeyW":
-        keyState.forward = true;
-        break;
+
+      // ⛔️ RIMOSSO: forward non serve più
+      // case "ArrowUp":
+      // case "KeyW":
+      //   keyState.forward = true;
+      //   break;
 
       case "ArrowLeft":
       case "KeyA":
@@ -123,19 +134,20 @@ export function setupPlayerController(
         keyState.slide = true;
         break;
 
-      case "Space":
-        event.preventDefault();
-        keyState.jump = true;
-        break;
+      case "KeyW":
+      keyState.jump = true;
+      break;
     }
   }
 
   function handleKeyUp(event: KeyboardEvent) {
     switch (event.code) {
-      case "ArrowUp":
-      case "KeyW":
-        keyState.forward = false;
-        break;
+
+      // ⛔️ RIMOSSO: forward non serve più
+      // case "ArrowUp":
+      // case "KeyW":
+      //   keyState.forward = false;
+      //   break;
 
       case "ArrowLeft":
       case "KeyA":
@@ -152,9 +164,9 @@ export function setupPlayerController(
         keyState.slide = false;
         break;
 
-      case "Space":
-        keyState.jump = false;
-        break;
+      case "KeyW":
+      keyState.jump = false;
+      break;
     }
   }
 
@@ -165,7 +177,6 @@ export function setupPlayerController(
     keyState.forward = false;
     keyState.slide = false;
     keyState.jump = false;
-
     keyState.leftPressed = false;
     keyState.rightPressed = false;
 
@@ -187,42 +198,58 @@ export function setupPlayerController(
     const previousLane = currentLane;
     currentLane = Math.min(maxLane, Math.max(-maxLane, currentLane + dir));
 
-    // Nessuna corsia disponibile → non fare animazione
     if (previousLane === currentLane) return;
 
-    // Nuova X target
     targetX = currentLane * laneWidth;
 
-    // Animazioni di strafe come transizione
     if (dir > 0) stateMachine.setPlayerState("Strafe_R");
     else stateMachine.setPlayerState("Strafe_L");
   }
 
   // ------------------------------------------
-  // STATE MACHINE UPDATE
+  // STATE MACHINE UPDATE (ENDLESS RUN)
   // ------------------------------------------
   function updateMovementState() {
     if (!playerRoot || !stateMachine) return;
     if (debugOverrideState) return;
 
-    let triggeredJump = false;
-
+    // -----------------------
+    // JUMP
+    // -----------------------
     if (keyState.jump) {
       stateMachine.setPlayerState("Jump");
-      triggeredJump = true;
       keyState.jump = false;
+      return;
     }
-    if (triggeredJump) return;
 
+    // -----------------------
+    // SLIDE
+    // -----------------------
     if (keyState.slide) {
       stateMachine.setPlayerState("Slide");
       return;
     }
 
-    if (keyState.forward) {
+    // -----------------------
+    // START TIMER INITIALE
+    // -----------------------
+    if (startTimerActive) {
+      const now = performance.now();
+      if (now - startTime >= START_DELAY) {
+        startTimerActive = false;
+        gameStarted = true;
+        stateMachine.setPlayerState("Run", true);
+      }
+      return; // resta in Idle finché non scade il timer
+    }
+
+    // -----------------------
+    // LOGICA ENDLESS:
+    // se non siamo in Fall/Getup → siamo sempre in Run
+    // -----------------------
+    const cur = stateMachine.currentState;
+    if (cur !== "Fall" && cur !== "Getup") {
       stateMachine.setPlayerState("Run");
-    } else {
-      stateMachine.setPlayerState("Idle");
     }
   }
 
@@ -234,7 +261,17 @@ export function setupPlayerController(
 
     updateMovementState();
 
-    // Lerp verso la X della corsia
+    // Restart idle → run dopo restart (solo se Idle NON da debug)
+    if (
+      !startTimerActive &&
+      stateMachine?.currentState === "Idle" &&
+      !gameStarted
+    ) {
+      startTimerActive = true;
+      startTime = performance.now();
+    }
+
+    // Lerp corsie
     playerRoot.position.x = BABYLON.Scalar.Lerp(
       playerRoot.position.x,
       targetX,

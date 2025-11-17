@@ -55,8 +55,10 @@ const animationRanges = {
   Strafe_L: buildLoopRange("Strafe_L", baseScrollSpeed),
   Strafe_R: buildLoopRange("Strafe_R", baseScrollSpeed),
   Run_Idle: { start: 222, end: 248, loop: false, scroll: 0 },
-  Fall: { start: 249, end: 324, loop: false, scroll: baseScrollSpeed },
-  Getup: { start: 325, end: 552, loop: false, scroll: baseScrollSpeed },
+
+  // 🔥 FIX: scroll = 0 durante Fall e Getup
+  Fall: { start: 249, end: 324, loop: false, scroll: 0 },
+  Getup: { start: 325, end: 552, loop: false, scroll: 0 },
 };
 
 const blockingStates = new Set<PlayerState>([
@@ -152,7 +154,10 @@ export function createPlayerStateMachine(
 
     const handleEnd = () => {
       if (next === "Slide" || next === "Jump") setPlayerState("Run", true);
-      else if (next === "Getup") setPlayerState("Idle", true);
+
+      // 🔥 FIX: dopo GETUP torniamo subito a RUN
+      else if (next === "Getup") setPlayerState("Run", true);
+
       else if (next === "Run_Idle") setPlayerState("Idle", true);
     };
 
