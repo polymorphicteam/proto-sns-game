@@ -237,7 +237,9 @@ export function createPlayerStateMachine(
   }
 
   return {
-    currentState: currentPlayerState,
+    get currentState() {
+      return currentPlayerState;
+    },
     setPlayerState,
     ensureIdle,
     dispose,

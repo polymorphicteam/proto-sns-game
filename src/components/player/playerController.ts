@@ -234,22 +234,13 @@ export function setupPlayerController(
     // GAME START (gestito da babylonRunner)
     // -----------------------
     if (!gameStarted) return;
-
-    // -----------------------
-    // LOGICA ENDLESS:
-    // se non siamo in Fall/Getup → siamo sempre in Run
-    // -----------------------
-    const cur = stateMachine.currentState;
-    if (cur !== "Fall" && cur !== "Getup") {
-      stateMachine.setPlayerState("Run");
-    }
   }
 
   // ------------------------------------------
   // MAIN UPDATE LOOP
   // ------------------------------------------
   scene.onBeforeRenderObservable.add(() => {
-    if (!playerRoot) return;
+    if (!playerRoot || !stateMachine) return;
 
     updateMovementState();
 
@@ -259,6 +250,15 @@ export function setupPlayerController(
       targetX,
       lateralLerp
     );
+
+    // Quando abbiamo raggiunto la corsia target, rientriamo in Run
+    if (!debugOverrideState) {
+      const cur = stateMachine.currentState;
+      const atTarget = Math.abs(playerRoot.position.x - targetX) < 0.5;
+      if (gameStarted && atTarget && (cur === "Strafe_L" || cur === "Strafe_R")) {
+        stateMachine.setPlayerState("Run");
+      }
+    }
   });
 
   function startGame() {
