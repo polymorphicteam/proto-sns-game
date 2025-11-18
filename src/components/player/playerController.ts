@@ -109,7 +109,7 @@ export function setupPlayerController(
     active: false,
     velocity: 0,
     gravity: -180,
-    jumpStrength: 70,
+    jumpStrength: 75,
   };
 
   function startJumpMotion() {
