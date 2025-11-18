@@ -60,7 +60,7 @@ function buildDuckObstacle(
     scene
   );
   frame.material = material;
-  frame.position.y = 10;
+  frame.position.y = 12;
   return frame;
 }
 
