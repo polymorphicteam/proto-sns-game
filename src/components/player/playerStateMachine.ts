@@ -56,7 +56,7 @@ const animationRanges = {
   Strafe_R: buildLoopRange("Strafe_R", baseScrollSpeed),
   Run_Idle: { start: 222, end: 248, loop: false, scroll: 0 },
 
-  // 🔥 FIX: scroll = 0 durante Fall e Getup
+  // �Y"� FIX: scroll = 0 durante Fall e Getup
   Fall: { start: 249, end: 324, loop: false, scroll: 0 },
   Getup: { start: 325, end: 552, loop: false, scroll: 0 },
 };
@@ -109,6 +109,7 @@ export function createPlayerStateMachine(
       }
     });
   }
+  ensureSkeletonRanges();
 
   function resolveFrames(state: PlayerState, fallback: any) {
     if (playerSkeleton) {
@@ -154,10 +155,9 @@ export function createPlayerStateMachine(
 
     const handleEnd = () => {
       if (next === "Slide") setPlayerState("Run", true);
-
-      // 🔥 FIX: dopo GETUP torniamo subito a RUN
+      else if (next === "Fall") setPlayerState("Getup", true);
+      // �Y"� FIX: dopo GETUP torniamo subito a RUN
       else if (next === "Getup") setPlayerState("Run", true);
-
       else if (next === "Run_Idle") setPlayerState("Idle", true);
     };
 

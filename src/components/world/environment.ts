@@ -8,6 +8,7 @@ import { createObstacleSystem, ObstacleController } from "./obstacleSystem";
 
 
 export interface EnvironmentController {
+  obstacleController: ObstacleController;
   dispose(): void;
 }
 
@@ -61,5 +62,5 @@ export function setupEnvironment(
     world.dispose();
   }
 
-  return { dispose };
+  return { dispose, obstacleController };
 }

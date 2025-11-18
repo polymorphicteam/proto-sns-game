@@ -6,6 +6,9 @@ import {
   PlayerState,
   createPlayerStateMachine,
 } from "./playerStateMachine";
+import { ObstacleController } from "../world/obstacleSystem";
+
+type PlayerAABB = { min: BABYLON.Vector3; max: BABYLON.Vector3 };
 
 export interface PlayerController {
   handleKeyDown(event: KeyboardEvent): void;
@@ -21,6 +24,7 @@ export function setupPlayerController(
   modelRoot: string,
   shadowGenerator: BABYLON.ShadowGenerator,
   setScrollSpeed: (speed: number) => void,
+  obstacleController: ObstacleController,
   onReady?: () => void
 ): PlayerController {
   // ------------------------------------------
@@ -66,6 +70,20 @@ export function setupPlayerController(
   let playerRoot: BABYLON.TransformNode | null = null;
   let stateMachine: ReturnType<typeof createPlayerStateMachine> | null = null;
   let baseY = 0;
+  let groundBaseY = 0;
+  let isOnPlatform = false;
+  const playerCollider = {
+    halfWidth: 0,
+    halfDepth: 0,
+    standingHeight: 0,
+    slideHeight: 0,
+    centerOffsetY: 0,
+    slideCenterOffsetY: 0,
+    initialized: false,
+  };
+
+  const INVULNERABILITY_AFTER_HIT = 1.1;
+  let invulnerabilityTimer = 0;
 
   // ------------------------------------------
   // KINEMATIC JUMP (parabolic, no physics engine)
@@ -106,6 +124,185 @@ export function setupPlayerController(
   }
 
   // ------------------------------------------
+  // PLAYER COLLIDER (AABB semplificato)
+  // ------------------------------------------
+  function computePlayerAABB(): PlayerAABB | null {
+    if (!playerRoot || !playerCollider.initialized) return null;
+
+    const isSliding = stateMachine?.currentState === "Slide";
+    const height = isSliding
+      ? playerCollider.slideHeight
+      : playerCollider.standingHeight;
+    const centerOffset = isSliding
+      ? playerCollider.slideCenterOffsetY
+      : playerCollider.centerOffsetY;
+
+    const center = new BABYLON.Vector3(
+      playerRoot.position.x,
+      playerRoot.position.y + centerOffset,
+      playerRoot.position.z
+    );
+
+    const halfHeight = height * 0.5;
+
+    return {
+      min: new BABYLON.Vector3(
+        center.x - playerCollider.halfWidth,
+        center.y - halfHeight,
+        center.z - playerCollider.halfDepth
+      ),
+      max: new BABYLON.Vector3(
+        center.x + playerCollider.halfWidth,
+        center.y + halfHeight,
+        center.z + playerCollider.halfDepth
+      ),
+    };
+  }
+
+  function intersectsAABB(a: PlayerAABB, b: PlayerAABB) {
+    return !(
+      a.max.x < b.min.x ||
+      a.min.x > b.max.x ||
+      a.max.y < b.min.y ||
+      a.min.y > b.max.y ||
+      a.max.z < b.min.z ||
+      a.min.z > b.max.z
+    );
+  }
+
+  // ------------------------------------------
+  // PLATFORM RAYCAST (landing on platforms)
+  // ------------------------------------------
+  function updatePlatformRaycast() {
+    if (!playerRoot) return;
+
+    const platformMeshes = obstacleController.getActivePlatformMeshes();
+    const hasPlatforms = platformMeshes.length > 0;
+
+    const rayOriginOffset = 2; // start slightly above player origin
+    const rayLength = 40;
+    const origin = playerRoot.position.add(
+      new BABYLON.Vector3(0, rayOriginOffset, 0)
+    );
+    const ray = new BABYLON.Ray(origin, new BABYLON.Vector3(0, -1, 0), rayLength);
+
+    const hit = scene.pickWithRay(ray, (mesh) => {
+      const metaType =
+        (mesh.metadata as { obstacleType?: string } | undefined)?.obstacleType ||
+        (mesh.parent &&
+          (mesh.parent.metadata as { obstacleType?: string } | undefined)
+            ?.obstacleType);
+      return metaType === "platform";
+    });
+    if (hit?.hit && hit.pickedPoint && hit.pickedMesh) {
+      const bi = hit.pickedMesh.getBoundingInfo();
+      const bbMin = bi?.boundingBox.minimumWorld;
+      const bbMax = bi?.boundingBox.maximumWorld;
+      const landMargin = 1.5;
+      const withinX =
+        bbMin && bbMax
+          ? playerRoot.position.x >= bbMin.x - landMargin &&
+            playerRoot.position.x <= bbMax.x + landMargin
+          : true;
+      const withinZ =
+        bbMin && bbMax
+          ? playerRoot.position.z >= bbMin.z - landMargin &&
+            playerRoot.position.z <= bbMax.z + landMargin
+          : true;
+
+      if (withinX && withinZ) {
+        const platformY = hit.pickedPoint.y;
+        const newBase = Math.max(platformY, groundBaseY);
+        const landingSnap = 1.5;
+        const descending = jumpMotion.active && jumpMotion.velocity <= 0;
+        const closeEnough = playerRoot.position.y - newBase <= landingSnap;
+
+        if (!jumpMotion.active || (descending && closeEnough)) {
+          baseY = newBase;
+          playerRoot.position.y = Math.max(playerRoot.position.y, baseY);
+          if (jumpMotion.active) {
+            jumpMotion.active = false;
+            jumpMotion.velocity = 0;
+            if (!debugOverrideState && stateMachine) {
+              stateMachine.setPlayerState("Run", true);
+            }
+          }
+          isOnPlatform = true;
+          return;
+        }
+      }
+    }
+
+    if (!hasPlatforms) {
+      isOnPlatform = false;
+      baseY = groundBaseY;
+      return;
+    }
+
+    if (isOnPlatform) {
+      baseY = groundBaseY;
+      if (!jumpMotion.active || jumpMotion.velocity <= 0) {
+        jumpMotion.active = true;
+        jumpMotion.velocity = 0;
+      }
+      isOnPlatform = false;
+    } else {
+      baseY = groundBaseY;
+    }
+  }
+
+  // ------------------------------------------
+  // COLLISIONE OSTACOLI (AABB vs AABB)
+  // ------------------------------------------
+  function triggerFallState() {
+    if (!stateMachine) return;
+    const current = stateMachine.currentState;
+    if (current === "Fall" || current === "Getup") return;
+
+    jumpMotion.active = false;
+    jumpMotion.velocity = 0;
+    invulnerabilityTimer = INVULNERABILITY_AFTER_HIT;
+    stateMachine.setPlayerState("Fall", true);
+  }
+
+  function checkObstacleCollision(): boolean {
+    if (!playerRoot || !stateMachine) return false;
+    if (invulnerabilityTimer > 0) return false;
+
+    const playerBox = computePlayerAABB();
+    if (!playerBox) return false;
+
+    const obstacles = obstacleController.getActiveObstacles();
+    const platformTopTolerance = 1.2;
+
+    for (const obs of obstacles) {
+      if (!obs.active) continue;
+
+      const mesh = obs.mesh;
+      mesh.computeWorldMatrix(true);
+      const bi = mesh.getBoundingInfo();
+      if (!bi) continue;
+
+      const obsBox = {
+        min: bi.boundingBox.minimumWorld,
+        max: bi.boundingBox.maximumWorld,
+      };
+
+      // Se siamo sopra la piattaforma, non contiamo collisione laterale
+      if (obs.type === "platform") {
+        const playerAbove = playerBox.min.y >= obsBox.max.y - platformTopTolerance;
+        if (isOnPlatform || playerAbove) continue;
+      }
+
+      if (intersectsAABB(playerBox, obsBox)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // ------------------------------------------
   // LOAD MODEL
   // ------------------------------------------
   loadPlayerModel(
@@ -116,6 +313,24 @@ export function setupPlayerController(
     (info) => {
       playerRoot = info.playerRoot;
       baseY = playerRoot.position.y;
+      groundBaseY = baseY;
+
+      const { min: worldMin, max: worldMax } =
+        info.playerRoot.getHierarchyBoundingVectors();
+      const localMin = worldMin.subtract(info.playerRoot.position);
+      const localMax = worldMax.subtract(info.playerRoot.position);
+      const width = localMax.x - localMin.x;
+      const depth = localMax.z - localMin.z;
+      const height = localMax.y - localMin.y;
+
+      playerCollider.halfWidth = width * 0.5;
+      playerCollider.halfDepth = depth * 0.5;
+      playerCollider.standingHeight = height;
+      playerCollider.slideHeight = height * 0.6;
+      playerCollider.centerOffsetY = localMin.y + height * 0.5;
+      playerCollider.slideCenterOffsetY =
+        localMin.y + playerCollider.slideHeight * 0.5;
+      playerCollider.initialized = true;
 
       stateMachine = createPlayerStateMachine({
         scene,
@@ -252,6 +467,8 @@ export function setupPlayerController(
   function updateMovementState() {
     if (!playerRoot || !stateMachine) return;
     if (debugOverrideState) return;
+    const curState = stateMachine.currentState;
+    if (curState === "Fall" || curState === "Getup") return;
 
     // -----------------------
     // JUMP
@@ -285,6 +502,7 @@ export function setupPlayerController(
 
     updateMovementState();
     const dt = scene.getEngine().getDeltaTime() / 1000;
+    invulnerabilityTimer = Math.max(0, invulnerabilityTimer - dt);
 
     // Lerp corsie
     playerRoot.position.x = BABYLON.Scalar.Lerp(
@@ -293,7 +511,17 @@ export function setupPlayerController(
       lateralLerp
     );
 
+    updatePlatformRaycast();
     updateJumpMotion(dt);
+
+    if (!debugOverrideState) {
+      if (stateMachine.currentState !== "Fall" && stateMachine.currentState !== "Getup") {
+        const hit = checkObstacleCollision();
+        if (hit) {
+          triggerFallState();
+        }
+      }
+    }
 
     // Quando abbiamo raggiunto la corsia target, rientriamo in Run
     if (!debugOverrideState) {

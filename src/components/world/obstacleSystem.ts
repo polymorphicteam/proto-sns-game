@@ -13,10 +13,12 @@ export interface ObstacleSystemOptions {
 }
 
 export interface ObstacleController {
+  getActiveObstacles(): ObstacleInstance[];
+  getActivePlatformMeshes(): BABYLON.AbstractMesh[];
   dispose(): void;
 }
 
-interface ObstacleInstance {
+export interface ObstacleInstance {
   mesh: BABYLON.AbstractMesh;
   type: ObstacleType;
   active: boolean;
@@ -141,6 +143,7 @@ export function createObstacleSystem(
     const mesh = obstacleBuilders[type]();
     mesh.parent = root;
     mesh.receiveShadows = true;
+    mesh.metadata = { obstacleType: type };
     shadowGenerator.addShadowCaster(mesh, true);
 
     const created: ObstacleInstance = { mesh, type, active: true };
@@ -211,5 +214,15 @@ export function createObstacleSystem(
     root.dispose();
   }
 
-  return { dispose };
+  function getActiveObstacles() {
+    return activeObstacles;
+  }
+
+  function getActivePlatformMeshes() {
+    return activeObstacles
+      .filter((o) => o.type === "platform")
+      .map((o) => o.mesh);
+  }
+
+  return { dispose, getActiveObstacles, getActivePlatformMeshes };
 }
