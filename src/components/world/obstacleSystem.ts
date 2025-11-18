@@ -66,13 +66,25 @@ function buildPlatformObstacle(
   scene: BABYLON.Scene,
   material: BABYLON.Material
 ): BABYLON.Mesh {
+  // CONFIGURAZIONE AGGIORNATA
+  // Altezza: 10 (Alta, ma superabile col salto max di 13.6)
+  // Profondità: 90 (Lunga piattaforma)
+  const width = 18;
+  const height = 15; 
+  const depth = 90;
+
   const platform = BABYLON.MeshBuilder.CreateBox(
     "obs_platform",
-    { width: 18, height: 6, depth: 18 },
+    { width, height, depth },
     scene
   );
   platform.material = material;
-  platform.position.y = 6;
+
+  // POSIZIONAMENTO
+  // Alziamo il centro di metà dell'altezza affinché
+  // la base tocchi esattamente y = 0
+  platform.position.y = height / 2;
+
   return platform;
 }
 
