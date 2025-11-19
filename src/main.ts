@@ -1,6 +1,7 @@
 // src/main.ts
 import "./styles/main.css";
 import { babylonRunner } from "./components/babylonRunner";
+import { initReactOverlay } from "./ui/bootstrap";
 
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -11,6 +12,10 @@ window.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  // Initialize React overlay first (before Babylon)
+  initReactOverlay();
+
   // Avvia la scena Babylon
   babylonRunner(canvas);
 });
+

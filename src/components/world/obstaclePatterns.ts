@@ -21,7 +21,7 @@ export interface PatternStep {
 export type ObstaclePattern = PatternStep[];
 
 // NIGHTMARE PATTERN (BALANCED + COINS)
-export const TEST_PATTERN: ObstaclePattern = [
+export const PATTERN_NIGHTMARE: ObstaclePattern = [
     // --- PHASE 1: WARMUP (Balanced) ---
     {
         obstacles: [{ type: "jump", laneIndex: 0 }],
@@ -115,3 +115,27 @@ export const TEST_PATTERN: ObstaclePattern = [
     },
     { obstacles: [{ type: "jump", laneIndex: 1 }], delayNext: 1.0 },
 ];
+
+// CITY PATTERN (EASIER, MORE FLOW)
+export const PATTERN_CITY: ObstaclePattern = [
+    { obstacles: [{ type: "jump", laneIndex: 0 }], coins: [{ laneIndex: -1, count: 3, spacing: 8 }], delayNext: 1.5 },
+    { obstacles: [{ type: "jump", laneIndex: 1 }], coins: [{ laneIndex: 0, count: 3, spacing: 8 }], delayNext: 1.5 },
+    { obstacles: [{ type: "jump", laneIndex: -1 }], coins: [{ laneIndex: 1, count: 3, spacing: 8 }], delayNext: 1.5 },
+
+    { obstacles: [{ type: "duck", laneIndex: 0 }], delayNext: 1.5 },
+    { obstacles: [{ type: "duck", laneIndex: 1 }], delayNext: 1.5 },
+    { obstacles: [{ type: "duck", laneIndex: -1 }], delayNext: 1.5 },
+
+    {
+        obstacles: [{ type: "platform", laneIndex: 0 }],
+        coins: [{ laneIndex: 0, yOffset: 15, count: 5, spacing: 8 }],
+        delayNext: 2.0
+    },
+    {
+        obstacles: [{ type: "platform", laneIndex: -1 }, { type: "platform", laneIndex: 1 }],
+        coins: [{ laneIndex: 0, count: 5, spacing: 8 }], // Coins in middle
+        delayNext: 2.0
+    }
+];
+
+export const ALL_PATTERNS = [PATTERN_NIGHTMARE, PATTERN_CITY];

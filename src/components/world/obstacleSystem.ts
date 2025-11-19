@@ -1,7 +1,7 @@
 // src/components/world/obstacleSystem.ts
 import * as BABYLON from "babylonjs";
 
-import { TEST_PATTERN } from "./obstaclePatterns";
+import { ALL_PATTERNS, ObstaclePattern } from "./obstaclePatterns";
 
 export type ObstacleType = "jump" | "duck" | "platform" | "insuperable";
 
@@ -180,11 +180,21 @@ export function createObstacleSystem(
 
 
   let spawnTimer = 0;
+  let currentPattern: ObstaclePattern = ALL_PATTERNS[0];
   let currentPatternIndex = 0;
   let nextSpawnDelay = 2.0; // Initial delay
 
   function spawnFromPattern() {
-    const step = TEST_PATTERN[currentPatternIndex];
+    // Check if we need to switch pattern
+    if (currentPatternIndex >= currentPattern.length) {
+      // Pick a random pattern
+      const randomIndex = Math.floor(Math.random() * ALL_PATTERNS.length);
+      currentPattern = ALL_PATTERNS[randomIndex];
+      currentPatternIndex = 0;
+      console.log("Switched to pattern index:", randomIndex);
+    }
+
+    const step = currentPattern[currentPatternIndex];
 
     for (const def of step.obstacles) {
       const obs = acquire(def.type);
@@ -207,7 +217,7 @@ export function createObstacleSystem(
 
     // Setup next spawn
     nextSpawnDelay = step.delayNext;
-    currentPatternIndex = (currentPatternIndex + 1) % TEST_PATTERN.length;
+    currentPatternIndex++;
   }
 
   const observer = scene.onBeforeRenderObservable.add(() => {
