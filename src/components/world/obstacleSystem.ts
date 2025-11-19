@@ -183,11 +183,12 @@ export function createObstacleSystem(
   function spawnFromPattern() {
     const step = TEST_PATTERN[currentPatternIndex];
 
-    const obs = acquire(step.type);
-    const xPos = step.laneIndex * laneWidth;
-
-    obs.mesh.position.set(xPos, obs.mesh.position.y, spawnZ);
-    activeObstacles.push(obs);
+    for (const def of step.obstacles) {
+      const obs = acquire(def.type);
+      const xPos = def.laneIndex * laneWidth;
+      obs.mesh.position.set(xPos, obs.mesh.position.y, spawnZ);
+      activeObstacles.push(obs);
+    }
 
     // Setup next spawn
     nextSpawnDelay = step.delayNext;
