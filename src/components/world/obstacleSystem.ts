@@ -14,6 +14,8 @@ export interface ObstacleSystemOptions {
   maxSpawnDelay?: number;
 }
 
+import { CoinController } from "./coinSystem";
+
 export interface ObstacleController {
   getActiveObstacles(): ObstacleInstance[];
   getActivePlatformMeshes(): BABYLON.AbstractMesh[];
@@ -111,6 +113,7 @@ export function createObstacleSystem(
   scene: BABYLON.Scene,
   shadowGenerator: BABYLON.ShadowGenerator,
   getScrollSpeed: () => number,
+  coinController: CoinController,
   options: ObstacleSystemOptions = {}
 ): ObstacleController {
   const laneWidth = options.laneWidth ?? 25;
@@ -188,6 +191,18 @@ export function createObstacleSystem(
       const xPos = def.laneIndex * laneWidth;
       obs.mesh.position.set(xPos, obs.mesh.position.y, spawnZ);
       activeObstacles.push(obs);
+    }
+
+    // Spawn Coins
+    if (step.coins) {
+      for (const coinDef of step.coins) {
+        coinController.spawnCoin(
+          coinDef.laneIndex,
+          coinDef.yOffset || 0,
+          coinDef.count,
+          coinDef.spacing
+        );
+      }
     }
 
     // Setup next spawn

@@ -4,11 +4,13 @@ import * as BABYLON from "babylonjs";
 import { createWorldSegments, WorldSegments } from "./worldSegments";
 import { createWorldScroll, WorldScrollController } from "./worldScroll";
 import { createObstacleSystem, ObstacleController } from "./obstacleSystem";
+import { createCoinSystem, CoinController } from "./coinSystem";
 
 
 
 export interface EnvironmentController {
   obstacleController: ObstacleController;
+  coinController: CoinController;
   dispose(): void;
 }
 
@@ -41,12 +43,22 @@ export function setupEnvironment(
   );
 
   // ------------------------------------------------------
-  // 3) OBSTACLE SYSTEM (jump / duck / platform)
+  // 3) COIN SYSTEM
+  // ------------------------------------------------------
+  const coinController: CoinController = createCoinSystem(
+    scene,
+    shadowGenerator,
+    getScrollSpeed
+  );
+
+  // ------------------------------------------------------
+  // 4) OBSTACLE SYSTEM (jump / duck / platform)
   // ------------------------------------------------------
   const obstacleController: ObstacleController = createObstacleSystem(
     scene,
     shadowGenerator,
     getScrollSpeed,
+    coinController,
     {
       laneWidth: 25,
       laneCount: 3,
@@ -58,9 +70,10 @@ export function setupEnvironment(
   // ------------------------------------------------------
   function dispose() {
     obstacleController.dispose();
+    coinController.dispose();
     scrollController.dispose();
     world.dispose();
   }
 
-  return { dispose, obstacleController };
+  return { dispose, obstacleController, coinController };
 }

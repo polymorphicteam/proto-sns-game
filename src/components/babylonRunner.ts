@@ -1,4 +1,3 @@
-// src/components/babylonRunner.ts
 import * as BABYLON from "babylonjs";
 import "babylonjs-loaders";
 
@@ -7,10 +6,10 @@ import { createLighting } from "./scene/lightingSetup";
 import { createCamera } from "./scene/cameraSetup";
 import { getAssetRoots } from "./assetPaths";
 import { setupPlayerController } from "./player/playerController";
-
 import { setupEnvironment } from "./world/environment";
+import { createUIManager } from "./ui/uiManager";
 
-// Draco configuration (unchanged)
+// Draco configuration
 if (BABYLON.DracoCompression) {
   BABYLON.DracoCompression.Configuration = {
     decoder: {
@@ -27,7 +26,7 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   let engine: BABYLON.Engine | null = null;
 
   // --------------------------------------------
-  // HARDWARE SCALING (risoluzione dinamica)
+  // HARDWARE SCALING
   // --------------------------------------------
   const updateHardwareScaling = () => {
     if (!engine) return;
@@ -40,7 +39,6 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   // --------------------------------------------
   const applyCanvasSize = () => {
     const aspect = 9 / 16;
-
     const maxW = window.innerWidth;
     const maxH = window.innerHeight;
 
@@ -54,7 +52,6 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
 
     canvas.width = width;
     canvas.height = height;
-
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
 
@@ -62,7 +59,6 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
     updateHardwareScaling();
   };
 
-  // First sizing
   applyCanvasSize();
 
   // --------------------------------------------
@@ -70,7 +66,6 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   // --------------------------------------------
   const { engine: createdEngine, scene } = createScene(canvas);
   engine = createdEngine;
-
   updateHardwareScaling();
 
   // --------------------------------------------
@@ -107,17 +102,15 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   );
 
   // --------------------------------------------
+  // UI MANAGER
+  // --------------------------------------------
+  const uiManager = createUIManager();
+
+  // --------------------------------------------
   // PLAYER
   // --------------------------------------------
   const START_DELAY = 3000;
   let startTimeoutId: number | null = null;
-
-  const startGameAfterDelay = () => {
-    if (startTimeoutId !== null) {
-      clearTimeout(startTimeoutId);
-    }
-    startTimeoutId = window.setTimeout(() => player.startGame(), START_DELAY);
-  };
 
   const player = setupPlayerController(
     scene,
@@ -126,14 +119,19 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
     shadowGenerator,
     setScrollSpeed,
     environment.obstacleController,
-    startGameAfterDelay
+    environment.coinController,
+    () => {
+      // Auto-start after delay
+      if (startTimeoutId !== null) clearTimeout(startTimeoutId);
+      startTimeoutId = window.setTimeout(() => player.startGame(), START_DELAY);
+    }
   );
 
   // --------------------------------------------
   // MAIN LOOP
   // --------------------------------------------
   engine.runRenderLoop(() => {
-    player.ensureIdle(); // mantiene l'animazione idle attiva finché serve
+    player.ensureIdle();
     scene.render();
   });
 
@@ -158,6 +156,8 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
 
     environment.dispose();
     player.dispose();
+    uiManager.dispose();
+
     if (startTimeoutId !== null) clearTimeout(startTimeoutId);
 
     BABYLON.Logger.ClearLogCache();

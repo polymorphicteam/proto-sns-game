@@ -7,8 +7,9 @@ import {
   createPlayerStateMachine,
 } from "./playerStateMachine";
 import { ObstacleController } from "../world/obstacleSystem";
+import { CoinController } from "../world/coinSystem";
 
-type PlayerAABB = { min: BABYLON.Vector3; max: BABYLON.Vector3 };
+export type PlayerAABB = { min: BABYLON.Vector3; max: BABYLON.Vector3 };
 
 export interface PlayerController {
   handleKeyDown(event: KeyboardEvent): void;
@@ -42,6 +43,7 @@ export function setupPlayerController(
   shadowGenerator: BABYLON.ShadowGenerator,
   setScrollSpeed: (speed: number) => void,
   obstacleController: ObstacleController,
+  coinController: CoinController,
   onReady?: () => void
 ): PlayerController {
   // ------------------------------------------
@@ -310,13 +312,13 @@ export function setupPlayerController(
       const withinX =
         bbMin && bbMax
           ? playerRoot.position.x >= bbMin.x - landMargin &&
-            playerRoot.position.x <= bbMax.x + landMargin
+          playerRoot.position.x <= bbMax.x + landMargin
           : true;
 
       const withinZ =
         bbMin && bbMax
           ? playerRoot.position.z >= bbMin.z - landMargin &&
-            playerRoot.position.z <= bbMax.z + landMargin
+          playerRoot.position.z <= bbMax.z + landMargin
           : true;
 
       if (withinX && withinZ) {
@@ -617,6 +619,19 @@ export function setupPlayerController(
       ) {
         const hit = checkObstacleCollision();
         if (hit) triggerFallState();
+
+        // Check Coins
+        const playerBox = computePlayerAABB();
+        if (playerBox) {
+          const coinsCollected = coinController.checkCollisions(playerBox);
+          if (coinsCollected > 0) {
+            // TODO: Update UI with score
+            console.log("Collected coins:", coinsCollected);
+            // Dispatch event or callback? For now just log.
+            const event = new CustomEvent("coinCollected", { detail: { count: coinsCollected } });
+            window.dispatchEvent(event);
+          }
+        }
       }
     }
 
@@ -642,7 +657,7 @@ export function setupPlayerController(
     if (stateMachine) stateMachine.ensureIdle();
   }
 
-  function dispose() {}
+  function dispose() { }
 
   return {
     handleKeyDown,
