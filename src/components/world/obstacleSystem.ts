@@ -1,7 +1,9 @@
 // src/components/world/obstacleSystem.ts
 import * as BABYLON from "babylonjs";
 
-export type ObstacleType = "jump" | "duck" | "platform";
+import { TEST_PATTERN } from "./obstaclePatterns";
+
+export type ObstacleType = "jump" | "duck" | "platform" | "insuperable";
 
 export interface ObstacleSystemOptions {
   laneWidth?: number;
@@ -72,7 +74,7 @@ function buildPlatformObstacle(
   // Altezza: 10 (Alta, ma superabile col salto max di 13.6)
   // Profondità: 90 (Lunga piattaforma)
   const width = 18;
-  const height = 15; 
+  const height = 15;
   const depth = 90;
 
   const platform = BABYLON.MeshBuilder.CreateBox(
@@ -88,6 +90,21 @@ function buildPlatformObstacle(
   platform.position.y = height / 2;
 
   return platform;
+}
+
+function buildInsuperableObstacle(
+  scene: BABYLON.Scene,
+  material: BABYLON.Material
+): BABYLON.Mesh {
+  // Tall wall that cannot be jumped over
+  const mesh = BABYLON.MeshBuilder.CreateBox(
+    "obs_insuperable",
+    { width: 12, height: 25, depth: 10 },
+    scene
+  );
+  mesh.material = material;
+  mesh.position.y = 12.5; // Center at half height
+  return mesh;
 }
 
 export function createObstacleSystem(
@@ -119,6 +136,11 @@ export function createObstacleSystem(
       new BABYLON.Color3(0.35, 0.8, 0.4),
       new BABYLON.Color3(0.08, 0.2, 0.1)
     ),
+    insuperable: createMaterial(
+      scene,
+      new BABYLON.Color3(0.5, 0.2, 0.8), // Purple
+      new BABYLON.Color3(0.1, 0.05, 0.2)
+    ),
   };
 
   const root = new BABYLON.TransformNode("obstacles_root", scene);
@@ -127,6 +149,7 @@ export function createObstacleSystem(
     jump: () => buildJumpObstacle(scene, materials.jump),
     duck: () => buildDuckObstacle(scene, materials.duck),
     platform: () => buildPlatformObstacle(scene, materials.platform),
+    insuperable: () => buildInsuperableObstacle(scene, materials.insuperable),
   };
 
   const obstaclePool: ObstacleInstance[] = [];
@@ -151,29 +174,24 @@ export function createObstacleSystem(
     return created;
   }
 
-  function randomLaneX() {
-    const half = Math.floor(laneCount / 2);
-    const laneIndex = Math.floor(Math.random() * laneCount) - half;
-    return laneIndex * laneWidth;
-  }
 
-  function pickRandomType(): ObstacleType {
-    const roll = Math.random();
-    if (roll < 0.34) return "jump";
-    if (roll < 0.67) return "duck";
-    return "platform";
-  }
 
   let spawnTimer = 0;
-  let nextSpawnDelay =
-    minSpawnDelay +
-    Math.random() * Math.max(0.1, maxSpawnDelay - minSpawnDelay);
+  let currentPatternIndex = 0;
+  let nextSpawnDelay = 2.0; // Initial delay
 
-  function spawnObstacle() {
-    const type = pickRandomType();
-    const obs = acquire(type);
-    obs.mesh.position.set(randomLaneX(), obs.mesh.position.y, spawnZ);
+  function spawnFromPattern() {
+    const step = TEST_PATTERN[currentPatternIndex];
+
+    const obs = acquire(step.type);
+    const xPos = step.laneIndex * laneWidth;
+
+    obs.mesh.position.set(xPos, obs.mesh.position.y, spawnZ);
     activeObstacles.push(obs);
+
+    // Setup next spawn
+    nextSpawnDelay = step.delayNext;
+    currentPatternIndex = (currentPatternIndex + 1) % TEST_PATTERN.length;
   }
 
   const observer = scene.onBeforeRenderObservable.add(() => {
@@ -199,10 +217,7 @@ export function createObstacleSystem(
     spawnTimer += dt;
     if (spawnTimer >= nextSpawnDelay) {
       spawnTimer = 0;
-      nextSpawnDelay =
-        minSpawnDelay +
-        Math.random() * Math.max(0.1, maxSpawnDelay - minSpawnDelay);
-      spawnObstacle();
+      spawnFromPattern();
     }
   });
 
