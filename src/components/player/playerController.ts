@@ -8,6 +8,7 @@ import {
 } from "./playerStateMachine";
 import { ObstacleController } from "../world/obstacleSystem";
 import { CoinController } from "../world/coinSystem";
+import { useGameStore } from "../../store/gameStore";
 
 export type PlayerAABB = { min: BABYLON.Vector3; max: BABYLON.Vector3 };
 
@@ -373,6 +374,17 @@ export function setupPlayerController(
     const current = stateMachine.currentState;
     if (current === "Fall" || current === "Getup") return;
 
+    // Update game store - decrement lives
+    const store = useGameStore.getState();
+    store.decrementLives();
+
+    // Check for game over
+    if (store.lives <= 0) {
+      console.log("💀 GAME OVER - No lives remaining");
+      // Game over state is automatically set by decrementLives()
+      // TODO: Show game over screen, stop game
+    }
+
     jumpMotion.active = false;
     jumpMotion.velocity = 0;
     invulnerabilityTimer = INVULNERABILITY_AFTER_HIT;
@@ -650,6 +662,10 @@ export function setupPlayerController(
   function startGame() {
     requestedStart = true;
     gameStarted = true;
+
+    // Update game state in store
+    useGameStore.getState().setGameState('playing');
+
     if (stateMachine) stateMachine.setPlayerState("Run", true);
   }
 
