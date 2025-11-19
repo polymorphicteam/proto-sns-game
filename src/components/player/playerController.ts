@@ -102,7 +102,8 @@ export function setupPlayerController(
     initialized: false,
   };
 
-  const INVULNERABILITY_AFTER_HIT = 1.1;
+  // Invulnerability duration must cover Fall (3.1s) + Getup (9.5s) animations + safety margin
+  const INVULNERABILITY_AFTER_HIT = 4.0;
   let invulnerabilityTimer = 0;
 
   // ------------------------------------------
