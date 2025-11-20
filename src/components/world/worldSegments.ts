@@ -1,5 +1,6 @@
 // src/components/world/worldSegments.ts
 import * as BABYLON from "babylonjs";
+import { createCurvedMaterial } from "./worldCurvature";
 
 export interface WorldSegments {
   groundSegments: BABYLON.TransformNode[];
@@ -130,7 +131,7 @@ export function createWorldSegments(
       { width: groundWidth, height: spacing },
       scene
     );
-    g.material = groundMaterial;
+    g.material = createCurvedMaterial(scene, groundMaterial);
     g.receiveShadows = true;
     g.position.z = -i * spacing;
     return g;
@@ -228,6 +229,9 @@ export function createWorldSegments(
           rotQ: m.rotationQuaternion?.clone() ?? null,
           scale: m.scaling.clone(),
         });
+        if (m.material) {
+          m.material = createCurvedMaterial(scene, m.material);
+        }
         m.isVisible = false;
         m.setEnabled(false);
       });

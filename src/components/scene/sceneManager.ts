@@ -1,4 +1,5 @@
 import * as BABYLON from "babylonjs";
+import { registerCurvedWorldShaders } from "../world/worldCurvature";
 
 // -----------------------------------------------------------------------------
 // SCENE SETUP
@@ -11,6 +12,7 @@ export function createScene(canvas: HTMLCanvasElement) {
     BABYLON.Logger.LogLevels = BABYLON.Logger.NoneLogLevel;
 
     const scene = new BABYLON.Scene(engine);
+    registerCurvedWorldShaders();
 
     return {
         engine,
