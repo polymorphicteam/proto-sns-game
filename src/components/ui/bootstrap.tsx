@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { GameOverlay } from '../ui/GameOverlay';
+import '../../styles/main.css';
 
 
 /**
@@ -27,11 +28,6 @@ export function initReactOverlay(): void {
     // Create overlay container
     const overlayContainer = document.createElement('div');
     overlayContainer.id = 'react-overlay';
-
-    // Style the overlay to match canvas dimensions
-    overlayContainer.style.position = 'fixed';
-    overlayContainer.style.pointerEvents = 'none'; // Critical: allows clicks to pass through
-    overlayContainer.style.zIndex = '1000';
 
     // Function to sync overlay dimensions with canvas
     const syncOverlayWithCanvas = () => {
