@@ -45,7 +45,7 @@ function buildLoopRange(state: keyof typeof loopFrameRanges, scroll: number) {
 }
 
 const sourceFrameRate = 24;
-const baseScrollSpeed = 102;
+const baseScrollSpeed = 300;
 
 // Animation ranges config
 const animationRanges = {
