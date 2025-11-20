@@ -89,6 +89,9 @@ export function createCoinSystem(
     }
 
     function update(dt: number, scrollSpeed: number) {
+        // Allow negative speed for bounce-back effect
+        if (scrollSpeed === 0) return;
+
         const movement = scrollSpeed * dt;
 
         for (let i = activeCoins.length - 1; i >= 0; i--) {

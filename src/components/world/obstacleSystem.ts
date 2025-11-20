@@ -223,7 +223,9 @@ export function createObstacleSystem(
   const observer = scene.onBeforeRenderObservable.add(() => {
     const dt = scene.getEngine().getDeltaTime() / 1000;
     const speed = getScrollSpeed();
-    if (speed <= 0) return;
+
+    // Allow negative speed for bounce-back effect
+    if (speed === 0) return;
 
     const movement = speed * dt;
 
@@ -240,10 +242,13 @@ export function createObstacleSystem(
       }
     }
 
-    spawnTimer += dt;
-    if (spawnTimer >= nextSpawnDelay) {
-      spawnTimer = 0;
-      spawnFromPattern();
+    // Only spawn new obstacles when moving forward
+    if (speed > 0) {
+      spawnTimer += dt;
+      if (spawnTimer >= nextSpawnDelay) {
+        spawnTimer = 0;
+        spawnFromPattern();
+      }
     }
   });
 

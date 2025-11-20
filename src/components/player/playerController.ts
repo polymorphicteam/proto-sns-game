@@ -6,10 +6,10 @@ import {
   PlayerState,
   createPlayerStateMachine,
 } from "./playerStateMachine";
-import { ObstacleController } from "../world/obstacleSystem";
+import { ObstacleController, ObstacleInstance } from "../world/obstacleSystem";
 import { CoinController } from "../world/coinSystem";
 import { useGameStore } from "../../store/gameStore";
-
+import { createImpactVFX } from "./impactVFX";
 export type PlayerAABB = { min: BABYLON.Vector3; max: BABYLON.Vector3 };
 
 export interface PlayerController {
@@ -105,6 +105,14 @@ export function setupPlayerController(
   // Invulnerability duration must cover Fall (3.1s) + Getup (9.5s) animations + safety margin
   const INVULNERABILITY_AFTER_HIT = 4.0;
   let invulnerabilityTimer = 0;
+
+  // ------------------------------------------
+  // BOUNCE-BACK EFFECT (on collision)
+  // ------------------------------------------
+  const BOUNCE_BACK_DURATION = 0.25; // seconds - quick, sharp bounce
+  const BOUNCE_BACK_INTENSITY = 3.0; // multiplier for reverse speed
+  let bounceBackActive = false;
+  let bounceBackTimer = 0;
 
   // ------------------------------------------
   // KINEMATIC JUMP
@@ -370,10 +378,32 @@ export function setupPlayerController(
   // ------------------------------------------
   // COLLISIONE OSTACOLI
   // ------------------------------------------
-  function triggerFallState() {
+  function triggerBounceBack(hitObstacle?: ObstacleInstance) {
+    bounceBackActive = true;
+    bounceBackTimer = BOUNCE_BACK_DURATION;
+
+    // Create impact VFX if we know which obstacle was hit
+    if (hitObstacle && playerRoot) {
+      // Calculate impact point (lower to ground level for dust effect)
+      const impactPoint = playerRoot.position.clone();
+      impactPoint.y += 3; // Lowered from 8 to spawn closer to ground
+
+      createImpactVFX(scene, impactPoint, hitObstacle.mesh, {
+        duration: 0.4,
+        particleCount: 60,
+      });
+    }
+
+    console.log("🔙 Bounce-back effect triggered!");
+  }
+
+  function triggerFallState(hitObstacle?: ObstacleInstance) {
     if (!stateMachine) return;
     const current = stateMachine.currentState;
     if (current === "Fall" || current === "Getup") return;
+
+    // Trigger bounce-back effect with VFX
+    triggerBounceBack(hitObstacle);
 
     // Update game store - decrement lives
     const store = useGameStore.getState();
@@ -392,12 +422,12 @@ export function setupPlayerController(
     stateMachine.setPlayerState("Fall", true);
   }
 
-  function checkObstacleCollision(): boolean {
-    if (!playerRoot || !stateMachine) return false;
-    if (invulnerabilityTimer > 0) return false;
+  function checkObstacleCollision(): ObstacleInstance | null {
+    if (!playerRoot || !stateMachine) return null;
+    if (invulnerabilityTimer > 0) return null;
 
     const playerBox = computePlayerAABB();
-    if (!playerBox) return false;
+    if (!playerBox) return null;
 
     const obstacles = obstacleController.getActiveObstacles();
     const platformTopTolerance = 1.2;
@@ -424,11 +454,11 @@ export function setupPlayerController(
 
       if (intersectsAABB(playerBox, obsBox)) {
         console.log("AABB COLLISION DETECTED with", obs.type);
-        return true;
+        return obs; // Return the obstacle that was hit
       }
     }
 
-    return false;
+    return null;
   }
 
   // ------------------------------------------
@@ -616,6 +646,27 @@ export function setupPlayerController(
     const dt = scene.getEngine().getDeltaTime() / 1000;
     invulnerabilityTimer = Math.max(0, invulnerabilityTimer - dt);
 
+    // ------------------------------------------
+    // BOUNCE-BACK EFFECT UPDATE
+    // ------------------------------------------
+    if (bounceBackActive) {
+      bounceBackTimer -= dt;
+
+      if (bounceBackTimer <= 0) {
+        // Bounce finished, deactivate
+        bounceBackActive = false;
+        bounceBackTimer = 0;
+        // Ensure scroll speed returns to 0 (Fall/Getup state)
+        setScrollSpeed(0);
+        console.log("✅ Bounce-back effect completed");
+      } else {
+        // Apply reverse scroll speed
+        const normalSpeed = 80; // Base running speed
+        const reverseSpeed = -normalSpeed * BOUNCE_BACK_INTENSITY;
+        setScrollSpeed(reverseSpeed);
+      }
+    }
+
     playerRoot.position.x = BABYLON.Scalar.Lerp(
       playerRoot.position.x,
       targetX,
@@ -630,8 +681,8 @@ export function setupPlayerController(
         stateMachine.currentState !== "Fall" &&
         stateMachine.currentState !== "Getup"
       ) {
-        const hit = checkObstacleCollision();
-        if (hit) triggerFallState();
+        const hitObstacle = checkObstacleCollision();
+        if (hitObstacle) triggerFallState(hitObstacle);
 
         // Check Coins
         const playerBox = computePlayerAABB();
