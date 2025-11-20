@@ -18,6 +18,7 @@ export interface CoinController {
     update(dt: number, scrollSpeed: number): void;
     checkCollisions(playerAABB: PlayerAABB): number;
     dispose(): void;
+    reset(): void;
 }
 
 export function createCoinSystem(
@@ -164,5 +165,15 @@ export function createCoinSystem(
         root.dispose();
     }
 
-    return { spawnCoin, update, checkCollisions, dispose };
+    function reset() {
+        // Deactivate all active coins
+        for (const coin of activeCoins) {
+            coin.active = false;
+            coin.mesh.setEnabled(false);
+        }
+        activeCoins.length = 0;
+        console.log("Coin system reset");
+    }
+
+    return { spawnCoin, update, checkCollisions, dispose, reset };
 }

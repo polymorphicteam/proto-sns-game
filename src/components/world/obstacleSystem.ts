@@ -20,6 +20,7 @@ export interface ObstacleController {
   getActiveObstacles(): ObstacleInstance[];
   getActivePlatformMeshes(): BABYLON.AbstractMesh[];
   dispose(): void;
+  reset(): void;
 }
 
 export interface ObstacleInstance {
@@ -270,5 +271,25 @@ export function createObstacleSystem(
       .map((o) => o.mesh);
   }
 
-  return { dispose, getActiveObstacles, getActivePlatformMeshes };
+  function reset() {
+    // Deactivate all active obstacles
+    for (const obs of activeObstacles) {
+      obs.active = false;
+      obs.mesh.setEnabled(false);
+    }
+    activeObstacles.length = 0;
+
+    // Reset spawn state
+    spawnTimer = 0;
+    currentPatternIndex = 0;
+    nextSpawnDelay = 2.0;
+
+    // Reset to first pattern or random? Let's pick random to be fresh
+    const randomIndex = Math.floor(Math.random() * ALL_PATTERNS.length);
+    currentPattern = ALL_PATTERNS[randomIndex];
+
+    console.log("Obstacle system reset");
+  }
+
+  return { dispose, getActiveObstacles, getActivePlatformMeshes, reset };
 }
