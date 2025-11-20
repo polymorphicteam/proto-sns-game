@@ -654,7 +654,8 @@ export function setupPlayerController(
     if (curState === "Fall" || curState === "Getup" || curState === "Death") return;
 
     if (keyState.jump && !jumpMotion.active) {
-      stateMachine.setPlayerState("Jump");
+      // Force state transition to Jump even if currently in Slide state
+      stateMachine.setPlayerState("Jump", true);
       startJumpMotion();
       keyState.jump = false;
       return;
