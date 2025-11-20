@@ -400,20 +400,26 @@ export function setupPlayerController(
   function triggerFallState(hitObstacle?: ObstacleInstance) {
     if (!stateMachine) return;
     const current = stateMachine.currentState;
-    if (current === "Fall" || current === "Getup") return;
+    if (current === "Fall" || current === "Getup" || current === "Death") return;
 
     // Trigger bounce-back effect with VFX
     triggerBounceBack(hitObstacle);
-
     // Update game store - decrement lives
     const store = useGameStore.getState();
     store.decrementLives();
 
+    // Fetch fresh state to check actual remaining lives
+    const freshState = useGameStore.getState();
+
     // Check for game over
-    if (store.lives <= 0) {
+    if (freshState.lives <= 0) {
       console.log("💀 GAME OVER - No lives remaining");
-      // Game over state is automatically set by decrementLives()
-      // TODO: Show game over screen, stop game
+
+      jumpMotion.active = false;
+      jumpMotion.velocity = 0;
+      invulnerabilityTimer = INVULNERABILITY_AFTER_HIT;
+      stateMachine.setPlayerState("Death", true);
+      return;
     }
 
     jumpMotion.active = false;
@@ -618,7 +624,7 @@ export function setupPlayerController(
     if (debugOverrideState) return;
 
     const curState = stateMachine.currentState;
-    if (curState === "Fall" || curState === "Getup") return;
+    if (curState === "Fall" || curState === "Getup" || curState === "Death") return;
 
     if (keyState.jump && !jumpMotion.active) {
       stateMachine.setPlayerState("Jump");
@@ -679,7 +685,8 @@ export function setupPlayerController(
     if (!debugOverrideState) {
       if (
         stateMachine.currentState !== "Fall" &&
-        stateMachine.currentState !== "Getup"
+        stateMachine.currentState !== "Getup" &&
+        stateMachine.currentState !== "Death"
       ) {
         const hitObstacle = checkObstacleCollision();
         if (hitObstacle) triggerFallState(hitObstacle);

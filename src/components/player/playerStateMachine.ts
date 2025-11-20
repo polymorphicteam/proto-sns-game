@@ -10,7 +10,8 @@ export type PlayerState =
   | "Jump"
   | "Fall"
   | "Getup"
-  | "Run_Idle";
+  | "Run_Idle"
+  | "Death";
 
 export interface PlayerStateMachineConfig {
   scene: BABYLON.Scene;
@@ -56,9 +57,10 @@ const animationRanges = {
   Strafe_R: buildLoopRange("Strafe_R", baseScrollSpeed),
   Run_Idle: { start: 222, end: 248, loop: false, scroll: 0 },
 
-  // �Y"� FIX: scroll = 0 durante Fall e Getup
+  // Y" FIX: scroll = 0 durante Fall e Getup
   Fall: { start: 249, end: 324, loop: false, scroll: 0 },
   Getup: { start: 325, end: 552, loop: false, scroll: 0 },
+  Death: { start: 249, end: 324, loop: false, scroll: 0 },
 };
 
 const blockingStates = new Set<PlayerState>([
@@ -66,6 +68,7 @@ const blockingStates = new Set<PlayerState>([
   "Jump",
   "Fall",
   "Getup",
+  "Death",
 ]);
 
 export function createPlayerStateMachine(
@@ -156,9 +159,10 @@ export function createPlayerStateMachine(
     const handleEnd = () => {
       if (next === "Slide") setPlayerState("Run", true);
       else if (next === "Fall") setPlayerState("Getup", true);
-      // �Y"� FIX: dopo GETUP torniamo subito a RUN
+      // Y" FIX: dopo GETUP torniamo subito a RUN
       else if (next === "Getup") setPlayerState("Run", true);
       else if (next === "Run_Idle") setPlayerState("Idle", true);
+      // Death state does not transition
     };
 
     let animationStarted = false;
