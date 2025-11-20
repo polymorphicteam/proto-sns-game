@@ -1,7 +1,7 @@
 // src/main.ts
 import "./styles/main.css";
 import { babylonRunner } from "./components/babylonRunner";
-import { initReactOverlay } from "./ui/bootstrap";
+import { initReactOverlay } from "./components/ui/bootstrap";
 
 
 window.addEventListener("DOMContentLoaded", () => {

@@ -1,9 +1,7 @@
 import * as BABYLON from "babylonjs";
 import "babylonjs-loaders";
 
-import { createScene } from "./scene/sceneSetup";
-import { createLighting } from "./scene/lightingSetup";
-import { createCamera } from "./scene/cameraSetup";
+import { createScene, createLighting, createCamera } from "./scene/sceneManager";
 import { getAssetRoots } from "./assetPaths";
 import { setupPlayerController } from "./player/playerController";
 import { setupEnvironment } from "./world/environment";
