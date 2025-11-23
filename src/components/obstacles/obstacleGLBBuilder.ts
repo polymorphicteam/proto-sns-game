@@ -1,7 +1,7 @@
 import { Scene, AbstractMesh, SceneLoader, AssetContainer, Vector3, BoundingInfo } from "babylonjs";
 import { ObstacleType } from "./obstacleSystem";
 import { ObstacleModelMap } from "./obstacleModelScanner";
-import { createCurvedMaterial } from "./worldCurvature";
+import { createCurvedMaterial } from "../world/worldCurvature";
 
 export class ObstacleGLBBuilder {
     private static cache: Record<ObstacleType, AssetContainer[]> = {

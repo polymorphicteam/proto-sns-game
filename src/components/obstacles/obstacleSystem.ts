@@ -1,6 +1,6 @@
-// src/components/world/obstacleSystem.ts
+// src/components/obstacles/obstacleSystem.ts
 import * as BABYLON from "babylonjs";
-import { createCurvedObstacleMaterial } from "./worldCurvature";
+import { createCurvedObstacleMaterial } from "../world/worldCurvature";
 import { scanObstacleFolders } from "./obstacleModelScanner";
 import { ObstacleGLBBuilder } from "./obstacleGLBBuilder";
 
@@ -17,7 +17,7 @@ export interface ObstacleSystemOptions {
   maxSpawnDelay?: number;
 }
 
-import { CoinController } from "./coinSystem";
+import { CoinController } from "../world/coinSystem";
 
 export interface ObstacleController {
   getActiveObstacles(): ObstacleInstance[];

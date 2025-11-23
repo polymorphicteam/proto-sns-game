@@ -6,7 +6,7 @@ import {
   PlayerState,
   createPlayerStateMachine,
 } from "./playerStateMachine";
-import { ObstacleController, ObstacleInstance } from "../world/obstacleSystem";
+import { ObstacleController, ObstacleInstance } from "../obstacles/obstacleSystem";
 import { CoinController } from "../world/coinSystem";
 import { useGameStore } from "../../store/gameStore";
 import { createImpactVFX } from "./impactVFX";

@@ -3,7 +3,7 @@ import * as BABYLON from "babylonjs";
 
 import { createWorldSegments, WorldSegments } from "./worldSegments";
 import { createWorldScroll, WorldScrollController } from "./worldScroll";
-import { createObstacleSystem, ObstacleController } from "./obstacleSystem";
+import { createObstacleSystem, ObstacleController } from "../obstacles/obstacleSystem";
 import { createCoinSystem, CoinController } from "./coinSystem";
 import { createCurvedMaterial } from "./worldCurvature";
 
