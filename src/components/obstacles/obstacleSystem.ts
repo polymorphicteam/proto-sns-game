@@ -28,7 +28,7 @@ export interface ObstacleController {
 
 export interface ObstacleInstance {
   mesh: BABYLON.AbstractMesh;
-  collisionMesh: BABYLON.AbstractMesh;
+  collisionMeshes: BABYLON.AbstractMesh[];
   type: ObstacleType;
   variant?: number;
   active: boolean;
@@ -187,7 +187,7 @@ export function createObstacleSystem(
 
     // Try to get a GLB mesh first
     let mesh: BABYLON.AbstractMesh | null = null;
-    let collisionMesh: BABYLON.AbstractMesh | null = null;
+    let collisionMeshes: BABYLON.AbstractMesh[] | null = null;
     let variantUsed = variantIndex;
 
     const glbResult =
@@ -197,11 +197,11 @@ export function createObstacleSystem(
 
     if (glbResult) {
       mesh = glbResult.root;
-      collisionMesh = glbResult.collision;
+      collisionMeshes = glbResult.collisionMeshes;
     } else {
       // Fallback to default builder
       mesh = obstacleBuilders[type]();
-      collisionMesh = mesh;
+      collisionMeshes = [mesh];
       variantUsed = undefined;
       if (mesh.material) {
         mesh.material = createCurvedObstacleMaterial(scene, mesh.material);
@@ -215,7 +215,7 @@ export function createObstacleSystem(
 
     const created: ObstacleInstance = {
       mesh,
-      collisionMesh: collisionMesh!,
+      collisionMeshes: collisionMeshes ?? [mesh],
       type,
       variant: variantUsed,
       active: true

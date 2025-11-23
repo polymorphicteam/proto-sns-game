@@ -446,26 +446,30 @@ export function setupPlayerController(
       const mesh = obs.mesh;
       mesh.computeWorldMatrix(true);
 
-      // Use collisionMesh if available (it should always be there now)
-      const collisionMesh = obs.collisionMesh || mesh;
-      collisionMesh.computeWorldMatrix(true);
+      const collisionMeshes = obs.collisionMeshes?.length
+        ? obs.collisionMeshes
+        : [mesh];
 
-      const bi = collisionMesh.getBoundingInfo();
-      if (!bi) continue;
+      for (const collisionMesh of collisionMeshes) {
+        collisionMesh.computeWorldMatrix(true);
 
-      const obsBox = {
-        min: bi.boundingBox.minimumWorld,
-        max: bi.boundingBox.maximumWorld,
-      };
+        const bi = collisionMesh.getBoundingInfo();
+        if (!bi) continue;
 
-      if (obs.type === "platform") {
-        const playerAbove =
-          playerBox.min.y >= obsBox.max.y - platformTopTolerance;
-        if (isOnPlatform || playerAbove) continue;
-      }
+        const obsBox = {
+          min: bi.boundingBox.minimumWorld,
+          max: bi.boundingBox.maximumWorld,
+        };
 
-      if (intersectsAABB(playerBox, obsBox)) {
-        return obs; // Return the obstacle that was hit
+        if (obs.type === "platform") {
+          const playerAbove =
+            playerBox.min.y >= obsBox.max.y - platformTopTolerance;
+          if (isOnPlatform || playerAbove) continue;
+        }
+
+        if (intersectsAABB(playerBox, obsBox)) {
+          return obs; // Return the obstacle that was hit
+        }
       }
     }
 

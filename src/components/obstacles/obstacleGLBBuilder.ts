@@ -49,7 +49,7 @@ export class ObstacleGLBBuilder {
         return containers ? containers.length : 0;
     }
 
-    public static getMesh(type: ObstacleType, scene: Scene, variantIndex?: number): { root: AbstractMesh, collision: AbstractMesh } | null {
+    public static getMesh(type: ObstacleType, scene: Scene, variantIndex?: number): { root: AbstractMesh, collisionMeshes: AbstractMesh[] } | null {
         const containers = this.cache[type];
 
         if (!containers || containers.length === 0) {
@@ -107,51 +107,55 @@ export class ObstacleGLBBuilder {
         // ------------------------------------------------------
         // CUSTOM COLLISION LOGIC
         // ------------------------------------------------------
-        let collisionMesh: AbstractMesh = mesh;
+        let collisionMeshes: AbstractMesh[] = [];
 
         // Search for "customCollision" in children (case-insensitive)
         const children = mesh.getChildMeshes(false);
-        const customCol = children.find(c => c.name.toLowerCase().includes("customcollision"));
+        const customCols = children.filter(c => c.name.toLowerCase().includes("customcollision"));
 
-        if (customCol) {
+        if (mesh.name && mesh.name.toLowerCase().includes("customcollision")) {
+            customCols.unshift(mesh);
+        }
+
+        if (customCols.length > 0) {
             // Found custom collision mesh
-            console.log(`[ObstacleGLBBuilder] Found custom collision for ${type}`);
-            collisionMesh = customCol;
+            console.log(`[ObstacleGLBBuilder] Found ${customCols.length} custom collision mesh(es) for ${type}`);
+            collisionMeshes = customCols;
 
-            // Hide it and make it unpickable
-            customCol.isVisible = false;
-            customCol.isPickable = false;
+            // Hide them and make them unpickable
+            collisionMeshes.forEach((col) => {
+                col.isVisible = false;
+                col.isPickable = false;
 
-            // Ensure we update its world matrix
-            customCol.computeWorldMatrix(true);
+                // Ensure we update its world matrix
+                col.computeWorldMatrix(true);
+                col.refreshBoundingInfo(true);
+            });
         } else {
             // Fallback: use main mesh (or root)
             // If root has no geometry, we might need to find the first mesh with geometry?
             // For now, we stick to the previous behavior: use the root (which encapsulates hierarchy bounds)
-            collisionMesh = mesh;
+            collisionMeshes = [mesh];
         }
 
         // FORCE BOUNDING INFO UPDATE
         // 1. Ensure world matrix is up to date
-        collisionMesh.computeWorldMatrix(true);
+        mesh.computeWorldMatrix(true);
 
         // 2. Get hierarchy bounds in world space if it's the root, or just its own bounds if it's a custom mesh
         // If it's custom collision mesh, it's likely a simple shape (box), so its own bounding info is enough.
         // If it's the root (fallback), we might want hierarchy bounds.
 
-        if (collisionMesh === mesh) {
+        if (collisionMeshes.length === 1 && collisionMeshes[0] === mesh) {
             // Fallback case: use hierarchy bounds of the root
             const { min, max } = mesh.getHierarchyBoundingVectors();
             const newBoundingInfo = new BoundingInfo(min, max);
             mesh.setBoundingInfo(newBoundingInfo);
-        } else {
-            // Custom collision case: refresh its bounding info
-            collisionMesh.refreshBoundingInfo(true);
         }
 
         // 5. Force update again just in case
-        collisionMesh.computeWorldMatrix(true);
+        collisionMeshes.forEach((col) => col.computeWorldMatrix(true));
 
-        return { root: mesh, collision: collisionMesh };
+        return { root: mesh, collisionMeshes };
     }
 }
