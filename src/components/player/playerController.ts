@@ -446,7 +446,11 @@ export function setupPlayerController(
       const mesh = obs.mesh;
       mesh.computeWorldMatrix(true);
 
-      const bi = mesh.getBoundingInfo();
+      // Use collisionMesh if available (it should always be there now)
+      const collisionMesh = obs.collisionMesh || mesh;
+      collisionMesh.computeWorldMatrix(true);
+
+      const bi = collisionMesh.getBoundingInfo();
       if (!bi) continue;
 
       const obsBox = {

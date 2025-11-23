@@ -28,7 +28,9 @@ export interface ObstacleController {
 
 export interface ObstacleInstance {
   mesh: BABYLON.AbstractMesh;
+  collisionMesh: BABYLON.AbstractMesh;
   type: ObstacleType;
+  variant?: number;
   active: boolean;
 }
 
@@ -167,7 +169,16 @@ export function createObstacleSystem(
   const activeObstacles: ObstacleInstance[] = [];
 
   function acquire(type: ObstacleType) {
-    const pooled = obstaclePool.find((o) => o.type === type && !o.active);
+    const variantCount = ObstacleGLBBuilder.getVariantCount(type);
+    const variantIndex =
+      variantCount > 0 ? Math.floor(Math.random() * variantCount) : undefined;
+
+    const pooled = obstaclePool.find((o) => {
+      if (o.type !== type || o.active) return false;
+      if (variantIndex === undefined) return true;
+      // Allow variant-specific match, or fall back to a generic mesh (no variant)
+      return o.variant === variantIndex || o.variant === undefined;
+    });
     if (pooled) {
       pooled.active = true;
       pooled.mesh.setEnabled(true);
@@ -175,11 +186,23 @@ export function createObstacleSystem(
     }
 
     // Try to get a GLB mesh first
-    let mesh = ObstacleGLBBuilder.getMesh(type, scene);
+    let mesh: BABYLON.AbstractMesh | null = null;
+    let collisionMesh: BABYLON.AbstractMesh | null = null;
+    let variantUsed = variantIndex;
 
-    if (!mesh) {
+    const glbResult =
+      variantIndex !== undefined
+        ? ObstacleGLBBuilder.getMesh(type, scene, variantIndex)
+        : ObstacleGLBBuilder.getMesh(type, scene);
+
+    if (glbResult) {
+      mesh = glbResult.root;
+      collisionMesh = glbResult.collision;
+    } else {
       // Fallback to default builder
       mesh = obstacleBuilders[type]();
+      collisionMesh = mesh;
+      variantUsed = undefined;
       if (mesh.material) {
         mesh.material = createCurvedObstacleMaterial(scene, mesh.material);
       }
@@ -187,15 +210,19 @@ export function createObstacleSystem(
 
     mesh.parent = root;
     mesh.receiveShadows = true;
-    mesh.metadata = { obstacleType: type };
+    mesh.metadata = { obstacleType: type, variant: variantUsed };
     shadowGenerator.addShadowCaster(mesh, true);
 
-    const created: ObstacleInstance = { mesh, type, active: true };
+    const created: ObstacleInstance = {
+      mesh,
+      collisionMesh: collisionMesh!,
+      type,
+      variant: variantUsed,
+      active: true
+    };
     obstaclePool.push(created);
     return created;
   }
-
-
 
   let spawnTimer = 0;
   let currentPattern: ObstaclePattern = ALL_PATTERNS[0];

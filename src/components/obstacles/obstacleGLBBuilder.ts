@@ -44,16 +44,25 @@ export class ObstacleGLBBuilder {
         console.log("Obstacle GLBs preloaded:", this.cache);
     }
 
-    public static getMesh(type: ObstacleType, scene: Scene): AbstractMesh | null {
+    public static getVariantCount(type: ObstacleType): number {
+        const containers = this.cache[type];
+        return containers ? containers.length : 0;
+    }
+
+    public static getMesh(type: ObstacleType, scene: Scene, variantIndex?: number): { root: AbstractMesh, collision: AbstractMesh } | null {
         const containers = this.cache[type];
 
         if (!containers || containers.length === 0) {
             return null; // Fallback to default builder
         }
 
-        // Pick a random container
-        const randomIndex = Math.floor(Math.random() * containers.length);
-        const container = containers[randomIndex];
+        // Pick a specific container when requested, otherwise random
+        const maxIndex = containers.length - 1;
+        const safeIndex =
+            typeof variantIndex === "number" && variantIndex >= 0 && variantIndex <= maxIndex
+                ? variantIndex
+                : Math.floor(Math.random() * containers.length);
+        const container = containers[safeIndex];
 
         // Instantiate models from the container
         const entries = container.instantiateModelsToScene((name) => name, false, { doNotInstantiate: false });
@@ -95,31 +104,54 @@ export class ObstacleGLBBuilder {
         // Let's reset position to 0,0,0 relative to parent
         mesh.position.setAll(0);
 
-        // FORCE BOUNDING INFO UPDATE FOR COLLISIONS
-        // The player controller uses mesh.getBoundingInfo() to detect collisions.
-        // GLB roots often have empty bounding boxes. We need to encapsulate the entire hierarchy.
+        // ------------------------------------------------------
+        // CUSTOM COLLISION LOGIC
+        // ------------------------------------------------------
+        let collisionMesh: AbstractMesh = mesh;
 
+        // Search for "customCollision" in children (case-insensitive)
+        const children = mesh.getChildMeshes(false);
+        const customCol = children.find(c => c.name.toLowerCase().includes("customcollision"));
+
+        if (customCol) {
+            // Found custom collision mesh
+            console.log(`[ObstacleGLBBuilder] Found custom collision for ${type}`);
+            collisionMesh = customCol;
+
+            // Hide it and make it unpickable
+            customCol.isVisible = false;
+            customCol.isPickable = false;
+
+            // Ensure we update its world matrix
+            customCol.computeWorldMatrix(true);
+        } else {
+            // Fallback: use main mesh (or root)
+            // If root has no geometry, we might need to find the first mesh with geometry?
+            // For now, we stick to the previous behavior: use the root (which encapsulates hierarchy bounds)
+            collisionMesh = mesh;
+        }
+
+        // FORCE BOUNDING INFO UPDATE
         // 1. Ensure world matrix is up to date
-        mesh.computeWorldMatrix(true);
+        collisionMesh.computeWorldMatrix(true);
 
-        // 2. Get hierarchy bounds in world space
-        const { min, max } = mesh.getHierarchyBoundingVectors();
+        // 2. Get hierarchy bounds in world space if it's the root, or just its own bounds if it's a custom mesh
+        // If it's custom collision mesh, it's likely a simple shape (box), so its own bounding info is enough.
+        // If it's the root (fallback), we might want hierarchy bounds.
 
-        // 3. Convert to local space (since BoundingInfo expects local coordinates)
-        // Since we just reset position to 0,0,0 and rotation is identity, 
-        // local bounds are roughly equal to world bounds relative to the pivot.
-        // However, to be precise, we should transform them back if the root had transforms.
-        // But here we know root is at 0,0,0.
-
-        // Create new BoundingInfo
-        const newBoundingInfo = new BoundingInfo(min, max);
-
-        // 4. Apply to mesh
-        mesh.setBoundingInfo(newBoundingInfo);
+        if (collisionMesh === mesh) {
+            // Fallback case: use hierarchy bounds of the root
+            const { min, max } = mesh.getHierarchyBoundingVectors();
+            const newBoundingInfo = new BoundingInfo(min, max);
+            mesh.setBoundingInfo(newBoundingInfo);
+        } else {
+            // Custom collision case: refresh its bounding info
+            collisionMesh.refreshBoundingInfo(true);
+        }
 
         // 5. Force update again just in case
-        mesh.computeWorldMatrix(true);
+        collisionMesh.computeWorldMatrix(true);
 
-        return mesh;
+        return { root: mesh, collision: collisionMesh };
     }
 }
