@@ -1,4 +1,4 @@
-import { Scene, AbstractMesh, SceneLoader, AssetContainer, Vector3 } from "babylonjs";
+import { Scene, AbstractMesh, SceneLoader, AssetContainer, Vector3, BoundingInfo } from "babylonjs";
 import { ObstacleType } from "./obstacleSystem";
 import { ObstacleModelMap } from "./obstacleModelScanner";
 import { createCurvedMaterial } from "./worldCurvature";
@@ -95,16 +95,30 @@ export class ObstacleGLBBuilder {
         // Let's reset position to 0,0,0 relative to parent
         mesh.position.setAll(0);
 
-        // We might need to adjust Y based on bounding box height to sit on ground?
-        // Default builders:
-        // Jump: y=6 (height 12) -> Center is at 6, so bottom is at 0.
-        // Duck: y=12 (height 6) -> Center is at 12, so bottom is at 9? No, wait.
-        // Duck frame: height 6, y=12. Box is centered. Top at 15, bottom at 9.
-        // Platform: y=height/2. Bottom at 0.
+        // FORCE BOUNDING INFO UPDATE FOR COLLISIONS
+        // The player controller uses mesh.getBoundingInfo() to detect collisions.
+        // GLB roots often have empty bounding boxes. We need to encapsulate the entire hierarchy.
 
-        // For GLBs, we should probably assume the origin (0,0,0) of the GLB is the bottom-center.
-        // If not, we might need to adjust.
-        // For now, let's assume the artist set the pivot at the bottom.
+        // 1. Ensure world matrix is up to date
+        mesh.computeWorldMatrix(true);
+
+        // 2. Get hierarchy bounds in world space
+        const { min, max } = mesh.getHierarchyBoundingVectors();
+
+        // 3. Convert to local space (since BoundingInfo expects local coordinates)
+        // Since we just reset position to 0,0,0 and rotation is identity, 
+        // local bounds are roughly equal to world bounds relative to the pivot.
+        // However, to be precise, we should transform them back if the root had transforms.
+        // But here we know root is at 0,0,0.
+
+        // Create new BoundingInfo
+        const newBoundingInfo = new BoundingInfo(min, max);
+
+        // 4. Apply to mesh
+        mesh.setBoundingInfo(newBoundingInfo);
+
+        // 5. Force update again just in case
+        mesh.computeWorldMatrix(true);
 
         return mesh;
     }
