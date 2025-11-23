@@ -18,6 +18,7 @@ export function setCurvatureStrength(v: number) {
 export function registerCurvedWorldShaders() {
     Effect.ShadersStore["curvedVertexShader"] = curvedVertexShader;
     Effect.ShadersStore["curvedFragmentShader"] = curvedFragmentShader;
+    Effect.ShadersStore["curvedObstacleFragmentShader"] = curvedObstacleFragmentShader;
 }
 
 export function createCurvedMaterial(scene: Scene, originalMaterial: Material, strength = curvatureStrength) {
@@ -143,6 +144,58 @@ export function createCurvedMaterial(scene: Scene, originalMaterial: Material, s
     return mat;
 }
 
+export function createCurvedObstacleMaterial(scene: Scene, originalMaterial: Material, strength = curvatureStrength) {
+    const mat = new ShaderMaterial(
+        "curvedObstacleMaterial",
+        scene,
+        {
+            vertex: "curved",
+            fragment: "curvedObstacle"
+        },
+        {
+            attributes: ["position"],
+            uniforms: [
+                "world",
+                "viewProjection",
+                "curvatureStrength",
+                "baseColor",
+                "emissiveColor",
+            ],
+        }
+    );
+
+    const asAny = originalMaterial as any;
+
+    // Preserve culling/wireframe flags when present
+    if (typeof asAny.backFaceCulling === "boolean") {
+        mat.backFaceCulling = asAny.backFaceCulling;
+    }
+    if (typeof asAny.wireframe === "boolean") {
+        mat.wireframe = asAny.wireframe;
+    }
+
+    // Base colors
+    const baseColorSource: Color3 =
+        asAny.diffuseColor ??
+        asAny.albedoColor ??
+        Color3.White();
+
+    const emissiveColor: Color3 = asAny.emissiveColor ?? Color3.Black();
+
+    mat.setVector4(
+        "baseColor",
+        new Vector4(baseColorSource.r, baseColorSource.g, baseColorSource.b, 1)
+    );
+    mat.setVector3(
+        "emissiveColor",
+        new Vector3(emissiveColor.r, emissiveColor.g, emissiveColor.b)
+    );
+
+    mat.setFloat("curvatureStrength", strength);
+
+    return mat;
+}
+
 export const curvedVertexShader = `
 precision highp float;
 
@@ -214,6 +267,19 @@ void main() {
 
     color.rgb += emissive;
 
+    gl_FragColor = color;
+}
+`;
+
+export const curvedObstacleFragmentShader = `
+precision highp float;
+
+uniform vec4 baseColor;
+uniform vec3 emissiveColor;
+
+void main() {
+    vec4 color = baseColor;
+    color.rgb += emissiveColor;
     gl_FragColor = color;
 }
 `;

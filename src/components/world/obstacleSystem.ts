@@ -1,6 +1,6 @@
 // src/components/world/obstacleSystem.ts
 import * as BABYLON from "babylonjs";
-import { createCurvedMaterial } from "./worldCurvature";
+import { createCurvedObstacleMaterial } from "./worldCurvature";
 
 import { ALL_PATTERNS, ObstaclePattern } from "./obstaclePatterns";
 
@@ -170,7 +170,7 @@ export function createObstacleSystem(
 
     const mesh = obstacleBuilders[type]();
     if (mesh.material) {
-      mesh.material = createCurvedMaterial(scene, mesh.material);
+      mesh.material = createCurvedObstacleMaterial(scene, mesh.material);
     }
     mesh.parent = root;
     mesh.receiveShadows = true;
