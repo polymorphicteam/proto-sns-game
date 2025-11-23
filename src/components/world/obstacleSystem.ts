@@ -1,6 +1,8 @@
 // src/components/world/obstacleSystem.ts
 import * as BABYLON from "babylonjs";
 import { createCurvedObstacleMaterial } from "./worldCurvature";
+import { scanObstacleFolders } from "./obstacleModelScanner";
+import { ObstacleGLBBuilder } from "./obstacleGLBBuilder";
 
 import { ALL_PATTERNS, ObstaclePattern } from "./obstaclePatterns";
 
@@ -148,6 +150,10 @@ export function createObstacleSystem(
     ),
   };
 
+  // Initialize GLB system
+  const modelMap = scanObstacleFolders();
+  ObstacleGLBBuilder.preloadAll(scene, modelMap);
+
   const root = new BABYLON.TransformNode("obstacles_root", scene);
 
   const obstacleBuilders: Record<ObstacleType, () => BABYLON.Mesh> = {
@@ -168,10 +174,17 @@ export function createObstacleSystem(
       return pooled;
     }
 
-    const mesh = obstacleBuilders[type]();
-    if (mesh.material) {
-      mesh.material = createCurvedObstacleMaterial(scene, mesh.material);
+    // Try to get a GLB mesh first
+    let mesh = ObstacleGLBBuilder.getMesh(type, scene);
+
+    if (!mesh) {
+      // Fallback to default builder
+      mesh = obstacleBuilders[type]();
+      if (mesh.material) {
+        mesh.material = createCurvedObstacleMaterial(scene, mesh.material);
+      }
     }
+
     mesh.parent = root;
     mesh.receiveShadows = true;
     mesh.metadata = { obstacleType: type };
