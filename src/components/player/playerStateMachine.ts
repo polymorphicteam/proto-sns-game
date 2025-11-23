@@ -173,7 +173,7 @@ export function createPlayerStateMachine(
       const to = targetFrames.end * frameScale;
 
       animationGroup.reset();
-      animationGroup.start(config.loop, 1, from, to, false);
+      animationGroup.start(config.loop, 1.5, from, to, false);
 
       animationStarted = true;
 
