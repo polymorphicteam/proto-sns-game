@@ -44,6 +44,7 @@ export function setupPlayerController(
   modelRoot: string,
   shadowGenerator: BABYLON.ShadowGenerator,
   setScrollSpeed: (speed: number) => void,
+  getScrollSpeed: () => number,
   obstacleController: ObstacleController,
   coinController: CoinController,
   onReady?: () => void
@@ -248,6 +249,12 @@ export function setupPlayerController(
   // ------------------------------------------
   function updatePlatformRaycast() {
     if (!playerRoot) return;
+
+    // 🔥 Fix: disabilita raycast piattaforme durante caduta o rialzata
+    if (stateMachine?.currentState === "Fall" || stateMachine?.currentState === "Getup") {
+      return;
+    }
+
     console.log("updatePlatformRaycast CALLED");
 
     const platformMeshes = obstacleController.getActivePlatformMeshes();
@@ -286,6 +293,15 @@ export function setupPlayerController(
     });
 
     if (hit?.hit && hit.pickedPoint && hit.pickedMesh) {
+      console.warn("🔵 PLATFORM RAYCAST HIT", {
+        pickedPointY: hit.pickedPoint.y,
+        playerY: playerRoot.position.y,
+        isOnPlatform,
+        currentState: stateMachine?.currentState,
+        jumpActive: jumpMotion.active,
+        jumpVelocity: jumpMotion.velocity,
+        descending: jumpMotion.active && jumpMotion.velocity <= 0
+      });
       const bi = hit.pickedMesh.getBoundingInfo();
       const bbMin = bi?.boundingBox.minimumWorld;
       const bbMax = bi?.boundingBox.maximumWorld;
@@ -341,10 +357,23 @@ export function setupPlayerController(
         const closeEnough = playerRoot.position.y - newBase <= landingSnap;
 
         if (!jumpMotion.active || (descending && closeEnough)) {
+          console.warn("🟦 PLATFORM LANDING (direct snap)", {
+            playerY: playerRoot.position.y,
+            baseY: newBase,
+            jumpActive: jumpMotion.active,
+            velocity: jumpMotion.velocity,
+          });
           baseY = newBase;
           playerRoot.position.y = Math.max(playerRoot.position.y, baseY);
 
           if (jumpMotion.active) {
+            console.error("🟥 PLATFORM LANDING (descending snap)", {
+              playerY: playerRoot.position.y,
+              baseY: newBase,
+              descending: jumpMotion.velocity <= 0,
+              closeEnough,
+              currentState: stateMachine?.currentState
+            });
             jumpMotion.active = false;
             jumpMotion.velocity = 0;
             if (!debugOverrideState && stateMachine) {
@@ -356,6 +385,7 @@ export function setupPlayerController(
           return;
         }
       }
+      console.log("🟨 PLATFORM RAYCAST: no valid landing");
     }
 
     if (!hasPlatforms) {
@@ -399,6 +429,12 @@ export function setupPlayerController(
   }
 
   function triggerFallState(hitObstacle?: ObstacleInstance) {
+    console.error("🟥 triggerFallState CALLED", {
+      obstacle: hitObstacle?.type,
+      livesBefore: useGameStore.getState().lives,
+      stateBefore: stateMachine?.currentState,
+      invulnerabilityTimer
+    });
     if (!stateMachine) return;
     const current = stateMachine.currentState;
     if (current === "Fall" || current === "Getup" || current === "Death") return;
@@ -427,6 +463,7 @@ export function setupPlayerController(
     jumpMotion.velocity = 0;
     invulnerabilityTimer = INVULNERABILITY_AFTER_HIT;
     stateMachine.setPlayerState("Fall", true);
+    console.error("🟥 STATE SET TO: FALL");
   }
 
   function checkObstacleCollision(): ObstacleInstance | null {
@@ -460,7 +497,16 @@ export function setupPlayerController(
       }
 
       if (intersectsAABB(playerBox, obsBox)) {
-        console.log("AABB COLLISION DETECTED with", obs.type);
+        console.warn("📦 AABB COLLISION", {
+          obstacleType: obs.type,
+          isOnPlatform,
+          playerAbove: playerBox.min.y >= obsBox.max.y - platformTopTolerance,
+          invulnerabilityTimer,
+          stateBefore: stateMachine?.currentState,
+          scrollSpeed: getScrollSpeed(),
+          playerY: playerRoot.position.y,
+          baseY
+        });
         return obs; // Return the obstacle that was hit
       }
     }
@@ -675,6 +721,15 @@ export function setupPlayerController(
     if (!playerRoot || !stateMachine) return;
 
     updateMovementState();
+
+    console.log("🏁 TICK", {
+      state: stateMachine?.currentState,
+      scrollSpeed: getScrollSpeed(),
+      bounceBackActive,
+      bounceBackTimer,
+      invulnerabilityTimer,
+      isOnPlatform
+    });
 
     const dt = scene.getEngine().getDeltaTime() / 1000;
     invulnerabilityTimer = Math.max(0, invulnerabilityTimer - dt);

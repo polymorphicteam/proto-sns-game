@@ -116,6 +116,7 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
     modelRoot,
     shadowGenerator,
     setScrollSpeed,
+    getScrollSpeed,
     environment.obstacleController,
     environment.coinController,
     () => {
