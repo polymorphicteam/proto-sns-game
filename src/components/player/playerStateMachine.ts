@@ -25,6 +25,8 @@ export interface PlayerStateMachine {
   currentState: PlayerState;
   setPlayerState: (next: PlayerState, force?: boolean) => void;
   ensureIdle: () => void;
+  pauseAnimation: () => void;
+  resumeAnimation: () => void;
   dispose: () => void;
 }
 
@@ -240,12 +242,32 @@ export function createPlayerStateMachine(
     stopCurrentAnimation();
   }
 
+  function pauseAnimation() {
+    if (animationGroup) {
+      animationGroup.pause();
+    }
+    if (playerAnimatable) {
+      playerAnimatable.pause();
+    }
+  }
+
+  function resumeAnimation() {
+    if (animationGroup) {
+      animationGroup.play();
+    }
+    if (playerAnimatable) {
+      playerAnimatable.restart();
+    }
+  }
+
   return {
     get currentState() {
       return currentPlayerState;
     },
     setPlayerState,
     ensureIdle,
+    pauseAnimation,
+    resumeAnimation,
     dispose,
   };
 }

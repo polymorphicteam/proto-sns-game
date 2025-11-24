@@ -563,8 +563,10 @@ export function setupPlayerController(
       const store = useGameStore.getState();
       if (store.gameState === "playing") {
         store.setGameState("paused");
+        if (stateMachine) stateMachine.pauseAnimation();
       } else if (store.gameState === "paused") {
         store.setGameState("playing");
+        if (stateMachine) stateMachine.resumeAnimation();
       }
       return;
     }
