@@ -125,7 +125,9 @@ export class ObstacleGLBBuilder {
             // Hide them and make them unpickable
             collisionMeshes.forEach((col) => {
                 col.isVisible = false;
-                col.isPickable = false;
+                col.isPickable = true;      // must be pickable for raycasting
+                col.metadata = col.metadata || {};
+                col.metadata.isCollisionMesh = true;
 
                 // Ensure we update its world matrix
                 col.computeWorldMatrix(true);

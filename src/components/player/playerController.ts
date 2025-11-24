@@ -38,6 +38,8 @@ const TUNING = {
   slideAABBOffset: 2,  // abbassa ulteriormente il bound in scivolata
 };
 
+let lastPlatformDebug = 0;
+
 export function setupPlayerController(
   scene: BABYLON.Scene,
   camera: BABYLON.ArcRotateCamera,
@@ -283,42 +285,17 @@ export function setupPlayerController(
     }
 
     const hit = scene.pickWithRay(ray, (mesh) => {
-      const metaType =
-        (mesh.metadata as any)?.obstacleType ||
-        (mesh.parent && (mesh.parent.metadata as any)?.obstacleType);
-      return metaType === "platform";
+      if ((mesh.metadata as any)?.isCollisionMesh === true) return true;
+      if ((mesh.metadata as any)?.obstacleType === "platform") return true;
+      if (mesh.parent && (mesh.parent.metadata as any)?.obstacleType === "platform")
+        return true;
+      return false;
     });
 
     if (hit?.hit && hit.pickedPoint && hit.pickedMesh) {
       const bi = hit.pickedMesh.getBoundingInfo();
       const bbMin = bi?.boundingBox.minimumWorld;
       const bbMax = bi?.boundingBox.maximumWorld;
-
-      // DEBUG PLATFORM AABB
-      if (DEBUG.showPlatformAABB && bi) {
-        const min = bbMin;
-        const max = bbMax;
-        const w = max.x - min.x;
-        const h = max.y - min.y;
-        const d = max.z - min.z;
-
-        const box = BABYLON.MeshBuilder.CreateBox(
-          "debug_platformAABB",
-          { width: w, height: h, depth: d },
-          scene
-        );
-        box.position = min.add(max).scale(0.5);
-        box.isPickable = false;
-        box.visibility = 0.15;
-
-        const mat2 = new BABYLON.StandardMaterial("m2", scene);
-        mat2.emissiveColor = BABYLON.Color3.Blue();
-        box.material = mat2;
-
-        setTimeout(() => box.dispose(), 50);
-      }
-
-
 
       const landMargin = 1.5;
       const withinX =
@@ -342,11 +319,39 @@ export function setupPlayerController(
 
       // true solo se la piattaforma è fisicamente sotto il giocatore
       // (tolleranza 0–10 unità, regolabile se serve)
-      const platformBelow = deltaY >= 0 && deltaY <= 10;
+      const platformBelow = deltaY >= -2 && deltaY <= 30;
+
+      if (DEBUG.showPlatformAABB && hit) {
+        const now = performance.now();
+        if (now - lastPlatformDebug > 300) {
+          lastPlatformDebug = now;
+
+          console.log("----- PLATFORM LANDING DEBUG -----");
+          console.log("Picked Mesh:", hit.pickedMesh?.name);
+          console.log("isCollisionMesh:", (hit.pickedMesh?.metadata as any)?.isCollisionMesh);
+          console.log("PickedPoint Y:", hit.pickedPoint?.y?.toFixed(3));
+          console.log("Player Y:", playerRoot.position.y.toFixed(3));
+
+          const bi = hit.pickedMesh?.getBoundingInfo();
+          if (bi) {
+            console.log("bbMinY:", bi.boundingBox.minimumWorld.y.toFixed(3));
+            console.log("bbMaxY:", bi.boundingBox.maximumWorld.y.toFixed(3));
+          }
+
+          console.log("deltaY:", deltaY);
+          console.log("feetY:", feetY);
+          console.log("platformTopY:", platformTopY);
+          console.log("withinX:", withinX);
+          console.log("withinZ:", withinZ);
+          console.log("platformBelow:", platformBelow);
+
+          console.log("----------------------------------");
+        }
+      }
 
       if (withinX && withinZ && platformBelow) {
-        const platformY = hit.pickedPoint.y;
-        const newBase = Math.max(platformY, groundBaseY);
+        const platformTopY = bbMax.y;
+        const newBase = Math.max(platformTopY, groundBaseY);
 
         const landingSnap = 1.5;
         const descending = jumpMotion.active && jumpMotion.velocity <= 0;
