@@ -268,11 +268,14 @@ export function createObstacleSystem(
   }
 
   const observer = scene.onBeforeRenderObservable.add(() => {
-    // FREEZE OBSTACLES IF NOT PLAYING
-    if (useGameStore.getState().gameState !== "playing") return;
+    // FREEZE OBSTACLES IF NOT PLAYING, UNLESS BOUNCE BACK
+    const state = useGameStore.getState().gameState;
+    const speed = getScrollSpeed();
+    const isBounceBack = state === "gameover" && speed < 0;
+
+    if (state !== "playing" && !isBounceBack) return;
 
     const dt = scene.getEngine().getDeltaTime() / 1000;
-    const speed = getScrollSpeed();
 
     // Allow negative speed for bounce-back effect
     if (speed === 0) return;

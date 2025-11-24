@@ -156,11 +156,14 @@ export function createCoinSystem(
     }
 
     const observer = scene.onBeforeRenderObservable.add(() => {
-        // FREEZE COINS IF NOT PLAYING
-        if (useGameStore.getState().gameState !== "playing") return;
+        // FREEZE COINS IF NOT PLAYING, UNLESS BOUNCE BACK
+        const state = useGameStore.getState().gameState;
+        const speed = getScrollSpeed();
+        const isBounceBack = state === "gameover" && speed < 0;
+
+        if (state !== "playing" && !isBounceBack) return;
 
         const dt = scene.getEngine().getDeltaTime() / 1000;
-        const speed = getScrollSpeed();
         update(dt, speed);
     });
 

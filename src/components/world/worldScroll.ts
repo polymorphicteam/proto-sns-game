@@ -21,13 +21,16 @@ export function createWorldScroll(
   // SCROLL LOOP: moves ground + buildings + texture offset
   // -----------------------------------------------------------
   scrollObs = scene.onBeforeRenderObservable.add(() => {
-    // FREEZE WORLD IF NOT PLAYING
-    if (useGameStore.getState().gameState !== "playing") return;
+    // FREEZE WORLD IF NOT PLAYING, UNLESS BOUNCE BACK (Game Over + Negative Speed)
+    const state = useGameStore.getState().gameState;
+    const speed = getScrollSpeed();
+    const isBounceBack = state === "gameover" && speed < 0;
+
+    if (state !== "playing" && !isBounceBack) return;
 
     const engine = scene.getEngine();
     const dt = engine.getDeltaTime() / 1000;
 
-    const speed = getScrollSpeed();
     if (speed === 0) return;
 
     const movement = speed * dt;
