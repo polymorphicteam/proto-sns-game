@@ -26,7 +26,7 @@ export interface PlayerController {
 // --------------------------------------------------
 const DEBUG = {
   showRay: true,
-  showPlayerAABB: true,
+  showPlayerAABB: false,
   showPlatformAABB: true,
 };
 
