@@ -333,7 +333,18 @@ export function setupPlayerController(
           playerRoot.position.z <= bbMax.z + landMargin
           : true;
 
-      if (withinX && withinZ) {
+      // Il player deve essere SOPRA la piattaforma, non davanti.
+      // Controlliamo che la parte superiore della piattaforma (bbMax.y)
+      // sia sotto al player ma non troppo sotto.
+      const platformTopY = bbMax.y;
+      const feetY = playerRoot.position.y;
+      const deltaY = feetY - platformTopY;
+
+      // true solo se la piattaforma è fisicamente sotto il giocatore
+      // (tolleranza 0–10 unità, regolabile se serve)
+      const platformBelow = deltaY >= 0 && deltaY <= 10;
+
+      if (withinX && withinZ && platformBelow) {
         const platformY = hit.pickedPoint.y;
         const newBase = Math.max(platformY, groundBaseY);
 
