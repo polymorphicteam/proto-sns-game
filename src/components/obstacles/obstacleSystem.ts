@@ -115,6 +115,8 @@ function buildInsuperableObstacle(
   return mesh;
 }
 
+import { useGameStore } from "../../store/gameStore";
+
 export function createObstacleSystem(
   scene: BABYLON.Scene,
   shadowGenerator: BABYLON.ShadowGenerator,
@@ -266,6 +268,9 @@ export function createObstacleSystem(
   }
 
   const observer = scene.onBeforeRenderObservable.add(() => {
+    // FREEZE OBSTACLES IF NOT PLAYING
+    if (useGameStore.getState().gameState !== "playing") return;
+
     const dt = scene.getEngine().getDeltaTime() / 1000;
     const speed = getScrollSpeed();
 

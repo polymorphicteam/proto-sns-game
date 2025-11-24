@@ -558,31 +558,25 @@ export function setupPlayerController(
       return;
     }
 
-    // RESTART GAME
-    if (event.code === "KeyR") {
+    // PAUSE TOGGLE (P)
+    if (event.code === "KeyP") {
       const store = useGameStore.getState();
-      // Allow restart only if game over (lives <= 0)
-      if (store.lives <= 0) {
-        console.log("🔄 RESTARTING GAME...");
-
-        // 1. Reset Store
-        store.resetGame();
-
-        // 2. Reset World Systems
-        obstacleController.reset();
-        coinController.reset();
-
-        // 3. Reset Player
-        reset();
-
-        // 4. Start Game again immediately? Or wait for input?
-        // Let's go to Idle and wait for start (or auto-start if preferred)
-        // For now, let's just reset to Idle. User can press Space/Click to start if needed,
-        // or we can auto-start. Let's auto-start for smooth loop.
-        startGame();
-        return;
+      if (store.gameState === "playing") {
+        store.setGameState("paused");
+      } else if (store.gameState === "paused") {
+        store.setGameState("playing");
       }
+      return;
     }
+
+    // RESTART GAME (R)
+    if (event.code === "KeyR") {
+      restartGame();
+      return;
+    }
+
+    // MOVEMENT INPUTS - Only if playing
+    if (!isGameActive()) return;
 
     switch (event.code) {
       case "ArrowLeft":
@@ -695,8 +689,13 @@ export function setupPlayerController(
   // ------------------------------------------
   // MAIN UPDATE LOOP
   // ------------------------------------------
+  const isGameActive = () => useGameStore.getState().gameState === "playing";
+
   scene.onBeforeRenderObservable.add(() => {
     if (!playerRoot || !stateMachine) return;
+
+    // PAUSE CHECK: Freeze EVERYTHING
+    if (useGameStore.getState().gameState === "paused") return;
 
     updateMovementState();
 
@@ -739,19 +738,22 @@ export function setupPlayerController(
         stateMachine.currentState !== "Getup" &&
         stateMachine.currentState !== "Death"
       ) {
-        const hitObstacle = checkObstacleCollision();
-        if (hitObstacle) triggerFallState(hitObstacle);
+        // COLLISION CHECKS - Only if game is active (not Game Over)
+        if (isGameActive()) {
+          const hitObstacle = checkObstacleCollision();
+          if (hitObstacle) triggerFallState(hitObstacle);
 
-        // Check Coins
-        const playerBox = computePlayerAABB();
-        if (playerBox) {
-          const coinsCollected = coinController.checkCollisions(playerBox);
-          if (coinsCollected > 0) {
-            // TODO: Update UI with score
-            console.log("Collected coins:", coinsCollected);
-            // Dispatch event or callback? For now just log.
-            const event = new CustomEvent("coinCollected", { detail: { count: coinsCollected } });
-            window.dispatchEvent(event);
+          // Check Coins
+          const playerBox = computePlayerAABB();
+          if (playerBox) {
+            const coinsCollected = coinController.checkCollisions(playerBox);
+            if (coinsCollected > 0) {
+              // TODO: Update UI with score
+              console.log("Collected coins:", coinsCollected);
+              // Dispatch event or callback? For now just log.
+              const event = new CustomEvent("coinCollected", { detail: { count: coinsCollected } });
+              window.dispatchEvent(event);
+            }
           }
         }
       }
@@ -809,6 +811,23 @@ export function setupPlayerController(
     setScrollSpeed(0);
 
     console.log("Player controller reset");
+  }
+
+  function restartGame() {
+    console.log("🔄 RESTARTING GAME...");
+
+    // 1. Reset Store
+    useGameStore.getState().resetGame();
+
+    // 2. Reset World Systems
+    obstacleController.reset();
+    coinController.reset();
+
+    // 3. Reset Player
+    reset();
+
+    // 4. Start Game
+    startGame();
   }
 
   return {

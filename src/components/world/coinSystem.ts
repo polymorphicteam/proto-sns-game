@@ -2,6 +2,8 @@ import * as BABYLON from "babylonjs";
 import { PlayerAABB } from "../player/playerController";
 import { createCurvedMaterial } from "./worldCurvature";
 
+import { useGameStore } from "../../store/gameStore";
+
 export interface CoinSystemOptions {
     spawnZ?: number;
     despawnZ?: number;
@@ -154,6 +156,9 @@ export function createCoinSystem(
     }
 
     const observer = scene.onBeforeRenderObservable.add(() => {
+        // FREEZE COINS IF NOT PLAYING
+        if (useGameStore.getState().gameState !== "playing") return;
+
         const dt = scene.getEngine().getDeltaTime() / 1000;
         const speed = getScrollSpeed();
         update(dt, speed);

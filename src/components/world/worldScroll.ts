@@ -2,6 +2,8 @@
 import * as BABYLON from "babylonjs";
 import { WorldSegments } from "./worldSegments";
 
+import { useGameStore } from "../../store/gameStore";
+
 export interface WorldScrollController {
   dispose(): void;
 }
@@ -19,6 +21,9 @@ export function createWorldScroll(
   // SCROLL LOOP: moves ground + buildings + texture offset
   // -----------------------------------------------------------
   scrollObs = scene.onBeforeRenderObservable.add(() => {
+    // FREEZE WORLD IF NOT PLAYING
+    if (useGameStore.getState().gameState !== "playing") return;
+
     const engine = scene.getEngine();
     const dt = engine.getDeltaTime() / 1000;
 
