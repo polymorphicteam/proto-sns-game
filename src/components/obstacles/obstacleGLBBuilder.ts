@@ -1,4 +1,4 @@
-import { Scene, AbstractMesh, SceneLoader, AssetContainer, Vector3, BoundingInfo } from "babylonjs";
+import { Scene, AbstractMesh, SceneLoader, AssetContainer, Vector3, BoundingInfo } from "@babylonjs/core";
 import { ObstacleType } from "./obstacleSystem";
 import { ObstacleModelMap } from "./obstacleModelScanner";
 import { createCurvedMaterial } from "../world/worldCurvature";
@@ -131,7 +131,6 @@ export class ObstacleGLBBuilder {
 
                 // Ensure we update its world matrix
                 col.computeWorldMatrix(true);
-                col.refreshBoundingInfo(true);
             });
         } else {
             // Fallback: use main mesh (or root)

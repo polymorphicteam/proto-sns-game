@@ -1,5 +1,5 @@
 // src/components/player/impactVFX.ts
-import * as BABYLON from "babylonjs";
+import * as BABYLON from "@babylonjs/core";
 
 export interface ImpactVFXOptions {
     duration?: number;

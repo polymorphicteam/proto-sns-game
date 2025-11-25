@@ -1,5 +1,5 @@
 // src/components/player/playerModel.ts
-import * as BABYLON from "babylonjs";
+import * as BABYLON from "@babylonjs/core";
 
 export interface PlayerModelResult {
   playerRoot: BABYLON.TransformNode;

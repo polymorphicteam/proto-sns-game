@@ -1,5 +1,5 @@
-import * as BABYLON from "babylonjs";
-import "babylonjs-loaders";
+import * as BABYLON from "@babylonjs/core";
+import "@babylonjs/loaders";
 
 import { createScene, createLighting, createCamera } from "./scene/sceneManager";
 import { getAssetRoots } from "./assetPaths";
@@ -139,10 +139,20 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   const onResize = () => applyCanvasSize();
   const onKeyDown = (ev: KeyboardEvent) => player.handleKeyDown(ev);
   const onKeyUp = (ev: KeyboardEvent) => player.handleKeyUp(ev);
+  const onTouchStart = (ev: TouchEvent) => player.handleTouchStart(ev);
+  const onTouchMove = (ev: TouchEvent) => player.handleTouchMove(ev);
+  const onTouchEnd = (ev: TouchEvent) => player.handleTouchEnd(ev);
+  const onPointerDown = (ev: PointerEvent) => player.handlePointerDown(ev);
+  const onPointerUp = (ev: PointerEvent) => player.handlePointerUp(ev);
 
   window.addEventListener("resize", onResize);
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
+  window.addEventListener("touchstart", onTouchStart, { passive: true });
+  window.addEventListener("touchmove", onTouchMove, { passive: true });
+  window.addEventListener("touchend", onTouchEnd, { passive: true });
+  window.addEventListener("pointerdown", onPointerDown);
+  window.addEventListener("pointerup", onPointerUp);
 
   // --------------------------------------------
   // CLEANUP
@@ -151,6 +161,11 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
     window.removeEventListener("resize", onResize);
     window.removeEventListener("keydown", onKeyDown);
     window.removeEventListener("keyup", onKeyUp);
+    window.removeEventListener("touchstart", onTouchStart);
+    window.removeEventListener("touchmove", onTouchMove);
+    window.removeEventListener("touchend", onTouchEnd);
+    window.removeEventListener("pointerdown", onPointerDown);
+    window.removeEventListener("pointerup", onPointerUp);
 
     environment.dispose();
     player.dispose();

@@ -1,5 +1,5 @@
 // src/components/obstacles/obstacleSystem.ts
-import * as BABYLON from "babylonjs";
+import * as BABYLON from "@babylonjs/core";
 import { createCurvedObstacleMaterial } from "../world/worldCurvature";
 import { scanObstacleFolders } from "./obstacleModelScanner";
 import { ObstacleGLBBuilder } from "./obstacleGLBBuilder";

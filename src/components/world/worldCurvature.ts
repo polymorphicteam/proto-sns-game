@@ -7,7 +7,7 @@ import {
     Vector3,
     Vector4,
     Texture,
-} from "babylonjs";
+} from "@babylonjs/core";
 
 export let curvatureStrength = 0.003;
 

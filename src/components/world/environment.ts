@@ -1,5 +1,5 @@
 // src/components/world/environment.ts
-import * as BABYLON from "babylonjs";
+import * as BABYLON from "@babylonjs/core";
 
 import { createWorldSegments, WorldSegments } from "./worldSegments";
 import { createWorldScroll, WorldScrollController } from "./worldScroll";

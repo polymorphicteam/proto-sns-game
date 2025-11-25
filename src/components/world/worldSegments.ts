@@ -1,5 +1,5 @@
 // src/components/world/worldSegments.ts
-import * as BABYLON from "babylonjs";
+import * as BABYLON from "@babylonjs/core";
 import { createCurvedMaterial } from "./worldCurvature";
 
 export interface WorldSegments {

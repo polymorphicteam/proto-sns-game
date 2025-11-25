@@ -1,5 +1,5 @@
 // src/components/player/playerController.ts
-import * as BABYLON from "babylonjs";
+import * as BABYLON from "@babylonjs/core";
 
 import { loadPlayerModel } from "./playerModel";
 import {
@@ -15,6 +15,11 @@ export type PlayerAABB = { min: BABYLON.Vector3; max: BABYLON.Vector3 };
 export interface PlayerController {
   handleKeyDown(event: KeyboardEvent): void;
   handleKeyUp(event: KeyboardEvent): void;
+  handleTouchStart(event: TouchEvent): void;
+  handleTouchMove(event: TouchEvent): void;
+  handleTouchEnd(event: TouchEvent): void;
+  handlePointerDown(event: PointerEvent): void;
+  handlePointerUp(event: PointerEvent): void;
   startGame(): void;
   ensureIdle(): void;
   dispose(): void;
@@ -832,12 +837,69 @@ export function setupPlayerController(
     startGame();
   }
 
+  // ------------------------------------------
+  // TOUCH & POINTER INPUT
+  // ------------------------------------------
+  const touchState = { startX: 0, startY: 0, startTime: 0, isDragging: false };
+  const SWIPE_THRESHOLD = 50;
+  const TAP_THRESHOLD = 200;
+  const SWIPE_MAX_TIME = 500;
+
+  function handleTouchStart(event: TouchEvent) {
+    if (!isGameActive()) return;
+    const touch = event.touches[0];
+    if (!touch) return;
+    touchState.startX = touch.clientX; touchState.startY = touch.clientY;
+    touchState.startTime = Date.now(); touchState.isDragging = true;
+  }
+
+  function handleTouchMove(event: TouchEvent) {
+    if (!isGameActive() || !touchState.isDragging) return;
+  }
+
+  function handleTouchEnd(event: TouchEvent) {
+    if (!isGameActive() || !touchState.isDragging) return;
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+    const deltaX = touch.clientX - touchState.startX;
+    const deltaY = touch.clientY - touchState.startY;
+    const deltaTime = Date.now() - touchState.startTime;
+    touchState.isDragging = false;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    if (distance < SWIPE_THRESHOLD && deltaTime < TAP_THRESHOLD) {
+      keyState.jump = true; setTimeout(() => (keyState.jump = false), 100); return;
+    }
+    if (distance >= SWIPE_THRESHOLD && deltaTime < SWIPE_MAX_TIME) {
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (deltaX > 0) { performLaneSwitch(-1); } else { performLaneSwitch(1); }
+      } else {
+        if (deltaY < 0) { keyState.jump = true; setTimeout(() => (keyState.jump = false), 100); }
+        else { keyState.slide = true; setTimeout(() => (keyState.slide = false), 500); }
+      }
+    }
+  }
+
+  function handlePointerDown(event: PointerEvent) {
+    if (!isGameActive()) return;
+    const canvas = scene.getEngine().getRenderingCanvas();
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left, y = event.clientY - rect.top;
+    const width = rect.width, height = rect.height;
+    const leftZone = x < width * 0.33, rightZone = x > width * 0.66;
+    const topZone = y < height * 0.33, bottomZone = y > height * 0.66;
+    if (topZone && !leftZone && !rightZone) { keyState.jump = true; }
+    else if (bottomZone && !leftZone && !rightZone) { keyState.slide = true; }
+    else if (leftZone) { performLaneSwitch(1); }
+    else if (rightZone) { performLaneSwitch(-1); }
+  }
+
+  function handlePointerUp(event: PointerEvent) {
+    keyState.slide = false; keyState.jump = false;
+  }
+
   return {
-    handleKeyDown,
-    handleKeyUp,
-    startGame,
-    ensureIdle,
-    dispose,
-    reset,
+    handleKeyDown, handleKeyUp, handleTouchStart, handleTouchMove, handleTouchEnd,
+    handlePointerDown, handlePointerUp, startGame, ensureIdle, dispose, reset,
   };
 }

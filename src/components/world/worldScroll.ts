@@ -1,5 +1,5 @@
 // src/components/world/worldScroll.ts
-import * as BABYLON from "babylonjs";
+import * as BABYLON from "@babylonjs/core";
 import { WorldSegments } from "./worldSegments";
 
 import { useGameStore } from "../../store/gameStore";
