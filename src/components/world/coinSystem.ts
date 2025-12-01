@@ -1,6 +1,5 @@
 import * as BABYLON from "@babylonjs/core";
 import { PlayerAABB } from "../player/playerController";
-import { createCurvedMaterial } from "./worldCurvature";
 
 import { useGameStore } from "../../store/gameStore";
 
@@ -53,7 +52,6 @@ export function createCoinSystem(
         );
         mesh.rotation.x = Math.PI / 2; // Stand up facing camera
         mesh.material = coinMaterial;
-        mesh.material = createCurvedMaterial(scene, mesh.material);
         mesh.parent = root;
         mesh.checkCollisions = false; // We handle AABB manually
 

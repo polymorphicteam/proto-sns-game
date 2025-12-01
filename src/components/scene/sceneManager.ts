@@ -1,5 +1,4 @@
 import * as BABYLON from "@babylonjs/core";
-import { registerCurvedWorldShaders } from "../world/worldCurvature";
 
 // -----------------------------------------------------------------------------
 // SCENE SETUP
@@ -12,7 +11,6 @@ export function createScene(canvas: HTMLCanvasElement) {
     BABYLON.Logger.LogLevels = BABYLON.Logger.NoneLogLevel;
 
     const scene = new BABYLON.Scene(engine);
-    registerCurvedWorldShaders();
 
     return {
         engine,
@@ -29,7 +27,7 @@ export function createLighting(scene: BABYLON.Scene) {
         new BABYLON.Vector3(0, 1, 0),
         scene
     );
-    hemisphericLight.intensity = 0.9;
+    hemisphericLight.intensity = 0;
 
     const directionalLight = new BABYLON.DirectionalLight(
         "dirLight",

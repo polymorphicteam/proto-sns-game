@@ -1,7 +1,6 @@
 import { Scene, AbstractMesh, SceneLoader, AssetContainer, Vector3, BoundingInfo } from "@babylonjs/core";
 import { ObstacleType } from "./obstacleSystem";
 import { ObstacleModelMap } from "./obstacleModelScanner";
-import { createCurvedMaterial } from "../world/worldCurvature";
 
 export class ObstacleGLBBuilder {
     private static cache: Record<ObstacleType, AssetContainer[]> = {
@@ -79,18 +78,6 @@ export class ObstacleGLBBuilder {
 
         // Ensure the root is an AbstractMesh
         const mesh = root as AbstractMesh;
-
-        // Apply curvature to all meshes in the hierarchy
-        // We use createCurvedMaterial which preserves textures
-        mesh.getChildMeshes(false).forEach((child) => {
-            if (child.material) {
-                child.material = createCurvedMaterial(scene, child.material);
-            }
-        });
-
-        if (mesh.material) {
-            mesh.material = createCurvedMaterial(scene, mesh.material);
-        }
 
         // Fix rotation/scaling if needed? 
         // Usually GLBs come in with Z-forward, Y-up.

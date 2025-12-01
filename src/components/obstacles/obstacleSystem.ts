@@ -1,6 +1,5 @@
 // src/components/obstacles/obstacleSystem.ts
 import * as BABYLON from "@babylonjs/core";
-import { createCurvedObstacleMaterial } from "../world/worldCurvature";
 import { scanObstacleFolders } from "./obstacleModelScanner";
 import { ObstacleGLBBuilder } from "./obstacleGLBBuilder";
 
@@ -205,9 +204,6 @@ export function createObstacleSystem(
       mesh = obstacleBuilders[type]();
       collisionMeshes = [mesh];
       variantUsed = undefined;
-      if (mesh.material) {
-        mesh.material = createCurvedObstacleMaterial(scene, mesh.material);
-      }
     }
 
     mesh.parent = root;

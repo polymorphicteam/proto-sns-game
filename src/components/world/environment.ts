@@ -5,9 +5,6 @@ import { createWorldSegments, WorldSegments } from "./worldSegments";
 import { createWorldScroll, WorldScrollController } from "./worldScroll";
 import { createObstacleSystem, ObstacleController } from "../obstacles/obstacleSystem";
 import { createCoinSystem, CoinController } from "./coinSystem";
-import { createCurvedMaterial } from "./worldCurvature";
-
-
 
 export interface EnvironmentController {
   obstacleController: ObstacleController;
@@ -32,20 +29,6 @@ export function setupEnvironment(
     shadowGenerator,
     modelRoot,
     textureRoot
-  );
-
-  // Apply curvature to static environment meshes
-  const curveMeshIfNeeded = (mesh: BABYLON.AbstractMesh) => {
-    if (mesh.material && !(mesh.material instanceof BABYLON.ShaderMaterial)) {
-      mesh.material = createCurvedMaterial(scene, mesh.material);
-    }
-  };
-
-  world.groundSegments.forEach((seg) => {
-    if (seg instanceof BABYLON.AbstractMesh) curveMeshIfNeeded(seg);
-  });
-  world.buildingSegments.forEach((seg) =>
-    seg.getChildMeshes().forEach(curveMeshIfNeeded)
   );
 
   // ------------------------------------------------------
