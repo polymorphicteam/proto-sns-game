@@ -38,10 +38,11 @@ function createMaterial(
   color: BABYLON.Color3,
   emissive: BABYLON.Color3
 ) {
-  const mat = new BABYLON.StandardMaterial("obstacleMat", scene);
-  mat.diffuseColor = color;
-  mat.specularColor = new BABYLON.Color3(0.05, 0.05, 0.05);
+  const mat = new BABYLON.PBRMaterial("obstaclePBR", scene);
+  mat.albedoColor = color;
   mat.emissiveColor = emissive;
+  mat.metallic = 0.0;
+  mat.roughness = 0.9;
   return mat;
 }
 

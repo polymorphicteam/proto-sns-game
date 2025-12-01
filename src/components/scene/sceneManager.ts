@@ -34,6 +34,7 @@ export function createLighting(scene: BABYLON.Scene) {
         new BABYLON.Vector3(-0.5, -1, 0.5),
         scene
     );
+    directionalLight.intensity = 0.5;
 
     const shadowGenerator = new BABYLON.ShadowGenerator(2048, directionalLight);
     shadowGenerator.useExponentialShadowMap = true;
@@ -42,6 +43,9 @@ export function createLighting(scene: BABYLON.Scene) {
         hemisphericLight,
         directionalLight,
         shadowGenerator,
+        setDirectionalLightIntensity: (intensity: number) => {
+            directionalLight.intensity = intensity;
+        },
     };
 }
 

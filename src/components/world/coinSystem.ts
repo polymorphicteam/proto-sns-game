@@ -34,10 +34,11 @@ export function createCoinSystem(
     const laneWidth = options.laneWidth ?? 25;
 
     // Material
-    const coinMaterial = new BABYLON.StandardMaterial("coinMat", scene);
-    coinMaterial.diffuseColor = new BABYLON.Color3(1, 0.8, 0); // Gold
+    const coinMaterial = new BABYLON.PBRMaterial("coinPBR", scene);
+    coinMaterial.albedoColor = new BABYLON.Color3(1, 0.8, 0); // Gold
     coinMaterial.emissiveColor = new BABYLON.Color3(0.4, 0.3, 0);
-    coinMaterial.specularColor = new BABYLON.Color3(1, 1, 1);
+    coinMaterial.metallic = 1.0;
+    coinMaterial.roughness = 0.3;
 
     const root = new BABYLON.TransformNode("coins_root", scene);
     const coinPool: CoinInstance[] = [];

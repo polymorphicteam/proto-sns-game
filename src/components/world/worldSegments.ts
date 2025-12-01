@@ -43,10 +43,10 @@ export function createWorldSegments(
   // ---------------------------------------------
   // ROAD MATERIAL + DYNAMIC TEXTURE
   // ---------------------------------------------
-  const groundMaterial = new BABYLON.StandardMaterial("groundMat", scene);
-  groundMaterial.diffuseColor = new BABYLON.Color3(0.12, 0.12, 0.14);
-  groundMaterial.specularColor = new BABYLON.Color3(0.02, 0.02, 0.02);
-  groundMaterial.emissiveColor = new BABYLON.Color3(0.01, 0.01, 0.012);
+  const groundMaterial = new BABYLON.PBRMaterial("groundPBR", scene);
+  groundMaterial.albedoColor = new BABYLON.Color3(0.12, 0.12, 0.14);
+  groundMaterial.metallic = 0.0;
+  groundMaterial.roughness = 0.9;
 
   const roadTextureState = { offset: 0 };
   const stripePattern = {
@@ -107,7 +107,7 @@ export function createWorldSegments(
 
     packagedTex.onLoadObservable.addOnce(() => {
       applyRoadTextureSettings(packagedTex);
-      groundMaterial.diffuseTexture = packagedTex;
+      groundMaterial.albedoTexture = packagedTex;
     });
 
     return { packagedTex, dynamicTex: dyn };
@@ -116,7 +116,7 @@ export function createWorldSegments(
   const { packagedTex, dynamicTex } = createFallbackTextures();
 
   // Use dynamic texture by default
-  groundMaterial.diffuseTexture = dynamicTex;
+  groundMaterial.albedoTexture = dynamicTex;
   applyRoadTextureSettings(dynamicTex);
 
   let activeRoadTexture = dynamicTex;
@@ -228,6 +228,14 @@ export function createWorldSegments(
           rotQ: m.rotationQuaternion?.clone() ?? null,
           scale: m.scaling.clone(),
         });
+        if (!(m.material instanceof BABYLON.PBRMaterial)) {
+          const orig: any = m.material;
+          const pbr = new BABYLON.PBRMaterial("buildingPBR", scene);
+          pbr.albedoColor = orig?.diffuseColor ?? BABYLON.Color3.White();
+          pbr.metallic = 0.0;
+          pbr.roughness = 1.0;
+          m.material = pbr;
+        }
         m.isVisible = false;
         m.setEnabled(false);
       });
