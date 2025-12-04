@@ -97,9 +97,14 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
 
   function checkAllReady() {
     if (playerReady && obstaclesReady) {
-      console.log("✅ All assets loaded - starting game");
+      console.log("✅ All assets loaded - hiding loading screen");
       useGameStore.getState().setLoading(false);
-      player.startGame();
+
+      // 3-second countdown before player starts running
+      setTimeout(() => {
+        console.log("🏃 Starting game after countdown");
+        player.startGame();
+      }, 3000);
     }
   }
 
