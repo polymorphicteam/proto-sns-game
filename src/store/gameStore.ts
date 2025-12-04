@@ -38,6 +38,9 @@ export interface GameState {
     // Loading state
     isLoading: boolean;
 
+    // Countdown state (3, 2, 1, 0=GO!, null=hidden)
+    countdownValue: number | null;
+
     // Power-ups (prepared for future)
     activePowerUps: PowerUp[];
 }
@@ -69,6 +72,9 @@ interface GameActions {
     // Loading management
     setLoading: (loading: boolean) => void;
 
+    // Countdown management
+    setCountdown: (value: number | null) => void;
+
     // Full reset
     resetGame: () => void;
 }
@@ -87,6 +93,7 @@ const INITIAL_STATE: GameState = {
     lives: 3,
     gameState: 'idle',
     isLoading: true,
+    countdownValue: null,
     activePowerUps: [],
 };
 
@@ -167,9 +174,14 @@ export const useGameStore = create<GameStore>((set) => ({
         set({ isLoading });
     },
 
+    // Countdown actions
+    setCountdown: (countdownValue: number | null) => {
+        set({ countdownValue });
+    },
+
     // Reset everything
     resetGame: () => {
         console.log('🔄 Game reset');
-        set({ ...INITIAL_STATE, isLoading: false });
+        set({ ...INITIAL_STATE, isLoading: false, countdownValue: null });
     },
 }));

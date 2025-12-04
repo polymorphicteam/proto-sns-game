@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { LoadingScreen } from './LoadingScreen';
+import { CountdownOverlay } from './CountdownOverlay';
 import '../../styles/main.css';
 
 /**
@@ -31,7 +32,8 @@ export const GameOverlay: React.FC = () => {
 
     return (
         <div className="game-overlay-container">
-            {/* Top HUD */}
+            {/* Countdown Overlay */}
+            <CountdownOverlay />
             <div className="top-hud">
                 {/* Lives Counter - Top Left */}
                 <div className="lives-container">

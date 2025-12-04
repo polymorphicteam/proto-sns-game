@@ -100,11 +100,27 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
       console.log("✅ All assets loaded - hiding loading screen");
       useGameStore.getState().setLoading(false);
 
-      // 3-second countdown before player starts running
-      setTimeout(() => {
-        console.log("🏃 Starting game after countdown");
-        player.startGame();
-      }, 3000);
+      // Start visual countdown sequence: 3, 2, 1, GO!
+      const sequence = [3, 2, 1, 0]; // 0 = "GO!"
+      let i = 0;
+
+      const tick = () => {
+        useGameStore.getState().setCountdown(sequence[i]);
+        i++;
+
+        if (i < sequence.length) {
+          setTimeout(tick, 1000);
+        } else {
+          // After "GO!", hide countdown and start game
+          setTimeout(() => {
+            useGameStore.getState().setCountdown(null);
+            console.log("🏃 Starting game after countdown");
+            player.startGame();
+          }, 500);
+        }
+      };
+
+      tick();
     }
   }
 
