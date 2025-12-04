@@ -1,5 +1,6 @@
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
+import { LoadingScreen } from './LoadingScreen';
 import '../../styles/main.css';
 
 /**
@@ -17,10 +18,16 @@ export const GameOverlay: React.FC = () => {
 
     // Subscribe to game state from Zustand store
     // Components will automatically re-render when these values change
+    const isLoading = useGameStore((state) => state.isLoading);
     const coinCount = useGameStore((state) => state.coinCount);
     const lives = useGameStore((state) => state.lives);
     const gameState = useGameStore((state) => state.gameState);
     const activePowerUps = useGameStore((state) => state.activePowerUps);
+
+    // Show loading screen while assets are loading
+    if (isLoading) {
+        return <LoadingScreen />;
+    }
 
     return (
         <div className="game-overlay-container">

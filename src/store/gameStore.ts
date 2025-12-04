@@ -35,6 +35,9 @@ export interface GameState {
     // Game flow
     gameState: GameStateType;
 
+    // Loading state
+    isLoading: boolean;
+
     // Power-ups (prepared for future)
     activePowerUps: PowerUp[];
 }
@@ -63,6 +66,9 @@ interface GameActions {
     activatePowerUp: (type: PowerUpType, duration: number) => void;
     deactivatePowerUp: (type: PowerUpType) => void;
 
+    // Loading management
+    setLoading: (loading: boolean) => void;
+
     // Full reset
     resetGame: () => void;
 }
@@ -80,6 +86,7 @@ const INITIAL_STATE: GameState = {
     score: 0,
     lives: 3,
     gameState: 'idle',
+    isLoading: true,
     activePowerUps: [],
 };
 
@@ -154,9 +161,15 @@ export const useGameStore = create<GameStore>((set) => ({
             activePowerUps: state.activePowerUps.filter(p => p.type !== type),
         })),
 
+    // Loading actions
+    setLoading: (isLoading: boolean) => {
+        console.log(`⏳ Loading: ${isLoading}`);
+        set({ isLoading });
+    },
+
     // Reset everything
     resetGame: () => {
         console.log('🔄 Game reset');
-        set(INITIAL_STATE);
+        set({ ...INITIAL_STATE, isLoading: false });
     },
 }));

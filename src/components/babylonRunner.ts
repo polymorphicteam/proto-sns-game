@@ -6,6 +6,7 @@ import { getAssetRoots } from "./assetPaths";
 import { setupPlayerController } from "./player/playerController";
 import { setupEnvironment } from "./world/environment";
 import { createUIManager } from "./ui/uiManager";
+import { useGameStore } from "../store/gameStore";
 
 // Draco configuration
 if (BABYLON.DracoCompression) {
@@ -107,9 +108,6 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   // --------------------------------------------
   // PLAYER
   // --------------------------------------------
-  const START_DELAY = 3000;
-  let startTimeoutId: number | null = null;
-
   const player = setupPlayerController(
     scene,
     camera,
@@ -119,9 +117,9 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
     environment.obstacleController,
     environment.coinController,
     () => {
-      // Auto-start after delay
-      if (startTimeoutId !== null) clearTimeout(startTimeoutId);
-      startTimeoutId = window.setTimeout(() => player.startGame(), START_DELAY);
+      // Player ready - hide loading screen and start game
+      useGameStore.getState().setLoading(false);
+      player.startGame();
     }
   );
 
@@ -170,8 +168,6 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
     environment.dispose();
     player.dispose();
     uiManager.dispose();
-
-    if (startTimeoutId !== null) clearTimeout(startTimeoutId);
 
     BABYLON.Logger.ClearLogCache();
     BABYLON.Logger.LogLevels = BABYLON.Logger.AllLogLevel;
