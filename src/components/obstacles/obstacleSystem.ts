@@ -23,6 +23,7 @@ export interface ObstacleController {
   getActivePlatformMeshes(): BABYLON.AbstractMesh[];
   dispose(): void;
   reset(): void;
+  isReady(): boolean;
 }
 
 export interface ObstacleInstance {
@@ -122,7 +123,8 @@ export function createObstacleSystem(
   shadowGenerator: BABYLON.ShadowGenerator,
   getScrollSpeed: () => number,
   coinController: CoinController,
-  options: ObstacleSystemOptions = {}
+  options: ObstacleSystemOptions = {},
+  onReady?: () => void
 ): ObstacleController {
   const laneWidth = options.laneWidth ?? 25;
   const laneCount = options.laneCount ?? 3;
@@ -156,7 +158,13 @@ export function createObstacleSystem(
 
   // Initialize GLB system
   const modelMap = scanObstacleFolders();
-  ObstacleGLBBuilder.preloadAll(scene, modelMap);
+  let glbsReady = false;
+
+  ObstacleGLBBuilder.preloadAll(scene, modelMap).then(() => {
+    glbsReady = true;
+    console.log("✅ Obstacle GLBs ready");
+    if (onReady) onReady();
+  });
 
   const root = new BABYLON.TransformNode("obstacles_root", scene);
 
@@ -340,5 +348,9 @@ export function createObstacleSystem(
     console.log("Obstacle system reset");
   }
 
-  return { dispose, getActiveObstacles, getActivePlatformMeshes, reset };
+  function isReady() {
+    return glbsReady;
+  }
+
+  return { dispose, getActiveObstacles, getActivePlatformMeshes, reset, isReady };
 }

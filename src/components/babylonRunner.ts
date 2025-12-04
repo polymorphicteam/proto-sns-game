@@ -90,6 +90,20 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   const getScrollSpeed = () => currentScrollSpeed;
 
   // --------------------------------------------
+  // LOADING STATE TRACKING
+  // --------------------------------------------
+  let playerReady = false;
+  let obstaclesReady = false;
+
+  function checkAllReady() {
+    if (playerReady && obstaclesReady) {
+      console.log("✅ All assets loaded - starting game");
+      useGameStore.getState().setLoading(false);
+      player.startGame();
+    }
+  }
+
+  // --------------------------------------------
   // ENVIRONMENT
   // --------------------------------------------
   const environment = setupEnvironment(
@@ -97,7 +111,13 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
     shadowGenerator,
     modelRoot,
     textureRoot,
-    getScrollSpeed
+    getScrollSpeed,
+    () => {
+      // Obstacles GLBs are ready
+      obstaclesReady = true;
+      console.log("✅ Obstacles ready");
+      checkAllReady();
+    }
   );
 
   // --------------------------------------------
@@ -117,9 +137,10 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
     environment.obstacleController,
     environment.coinController,
     () => {
-      // Player ready - hide loading screen and start game
-      useGameStore.getState().setLoading(false);
-      player.startGame();
+      // Player model is ready
+      playerReady = true;
+      console.log("✅ Player ready");
+      checkAllReady();
     }
   );
 

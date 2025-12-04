@@ -18,7 +18,8 @@ export function setupEnvironment(
   shadowGenerator: BABYLON.ShadowGenerator,
   modelRoot: string,
   textureRoot: string,
-  getScrollSpeed: () => number
+  getScrollSpeed: () => number,
+  onObstaclesReady?: () => void
 ): EnvironmentController {
 
   // ------------------------------------------------------
@@ -60,7 +61,8 @@ export function setupEnvironment(
     {
       laneWidth: 25,
       laneCount: 3,
-    }
+    },
+    onObstaclesReady
   );
 
   // ------------------------------------------------------
