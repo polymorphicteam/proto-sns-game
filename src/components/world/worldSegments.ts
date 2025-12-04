@@ -1,5 +1,6 @@
 // src/components/world/worldSegments.ts
 import * as BABYLON from "@babylonjs/core";
+import { getGroundMaterial, getBuildingMaterial } from "../materials/MaterialFactory";
 
 export interface WorldSegments {
   groundSegments: BABYLON.TransformNode[];
@@ -41,12 +42,9 @@ export function createWorldSegments(
   let buildingSpacing = 0;
 
   // ---------------------------------------------
-  // ROAD MATERIAL + DYNAMIC TEXTURE
+  // ROAD MATERIAL (from MaterialFactory)
   // ---------------------------------------------
-  const groundMaterial = new BABYLON.PBRMaterial("groundPBR", scene);
-  groundMaterial.albedoColor = new BABYLON.Color3(0.12, 0.12, 0.14);
-  groundMaterial.metallic = 0.0;
-  groundMaterial.roughness = 0.9;
+  const groundMaterial = getGroundMaterial(scene);
 
   const roadTextureState = { offset: 0 };
   const stripePattern = {
@@ -230,10 +228,7 @@ export function createWorldSegments(
         });
         if (!(m.material instanceof BABYLON.PBRMaterial)) {
           const orig: any = m.material;
-          const pbr = new BABYLON.PBRMaterial("buildingPBR", scene);
-          pbr.albedoColor = orig?.diffuseColor ?? BABYLON.Color3.White();
-          pbr.metallic = 0.0;
-          pbr.roughness = 1.0;
+          const pbr = getBuildingMaterial(scene, orig?.diffuseColor);
           m.material = pbr;
         }
         m.isVisible = false;

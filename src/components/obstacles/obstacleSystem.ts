@@ -2,6 +2,7 @@
 import * as BABYLON from "@babylonjs/core";
 import { scanObstacleFolders } from "./obstacleModelScanner";
 import { ObstacleGLBBuilder } from "./obstacleGLBBuilder";
+import { getObstacleMaterial } from "../materials/MaterialFactory";
 
 import { ALL_PATTERNS, ObstaclePattern } from "./obstaclePatterns";
 
@@ -34,18 +35,7 @@ export interface ObstacleInstance {
   active: boolean;
 }
 
-function createMaterial(
-  scene: BABYLON.Scene,
-  color: BABYLON.Color3,
-  emissive: BABYLON.Color3
-) {
-  const mat = new BABYLON.PBRMaterial("obstaclePBR", scene);
-  mat.albedoColor = color;
-  mat.emissiveColor = emissive;
-  mat.metallic = 0.0;
-  mat.roughness = 0.9;
-  return mat;
-}
+
 
 function buildJumpObstacle(
   scene: BABYLON.Scene,
@@ -134,26 +124,10 @@ export function createObstacleSystem(
   const maxSpawnDelay = options.maxSpawnDelay ?? 2.6;
 
   const materials = {
-    jump: createMaterial(
-      scene,
-      new BABYLON.Color3(0.8, 0.2, 0.2),
-      new BABYLON.Color3(0.2, 0.05, 0.05)
-    ),
-    duck: createMaterial(
-      scene,
-      new BABYLON.Color3(0.2, 0.6, 0.9),
-      new BABYLON.Color3(0.05, 0.15, 0.25)
-    ),
-    platform: createMaterial(
-      scene,
-      new BABYLON.Color3(0.35, 0.8, 0.4),
-      new BABYLON.Color3(0.08, 0.2, 0.1)
-    ),
-    insuperable: createMaterial(
-      scene,
-      new BABYLON.Color3(0.5, 0.2, 0.8), // Purple
-      new BABYLON.Color3(0.1, 0.05, 0.2)
-    ),
+    jump: getObstacleMaterial(scene, "jump"),
+    duck: getObstacleMaterial(scene, "duck"),
+    platform: getObstacleMaterial(scene, "platform"),
+    insuperable: getObstacleMaterial(scene, "insuperable"),
   };
 
   // Initialize GLB system

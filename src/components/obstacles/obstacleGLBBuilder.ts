@@ -1,6 +1,7 @@
 import { Scene, AbstractMesh, SceneLoader, AssetContainer, Vector3, BoundingInfo } from "@babylonjs/core";
 import { ObstacleType } from "./obstacleSystem";
 import { ObstacleModelMap } from "./obstacleModelScanner";
+import { applyUnifiedMaterialsToHierarchy } from "../materials/MaterialFactory";
 
 export class ObstacleGLBBuilder {
     private static cache: Record<ObstacleType, AssetContainer[]> = {
@@ -90,6 +91,9 @@ export class ObstacleGLBBuilder {
 
         // Let's reset position to 0,0,0 relative to parent
         mesh.position.setAll(0);
+
+        // Apply unified materials to the GLB mesh hierarchy
+        applyUnifiedMaterialsToHierarchy(mesh, scene, type);
 
         // ------------------------------------------------------
         // CUSTOM COLLISION LOGIC

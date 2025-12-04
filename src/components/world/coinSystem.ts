@@ -2,6 +2,7 @@ import * as BABYLON from "@babylonjs/core";
 import { PlayerAABB } from "../player/playerController";
 
 import { useGameStore } from "../../store/gameStore";
+import { getCoinMaterial } from "../materials/MaterialFactory";
 
 export interface CoinSystemOptions {
     spawnZ?: number;
@@ -34,11 +35,8 @@ export function createCoinSystem(
     const laneWidth = options.laneWidth ?? 25;
 
     // Material
-    const coinMaterial = new BABYLON.PBRMaterial("coinPBR", scene);
-    coinMaterial.albedoColor = new BABYLON.Color3(1, 0.8, 0); // Gold
-    coinMaterial.emissiveColor = new BABYLON.Color3(0.4, 0.3, 0);
-    coinMaterial.metallic = 1.0;
-    coinMaterial.roughness = 0.3;
+    // Material
+    const coinMaterial = getCoinMaterial(scene);
 
     const root = new BABYLON.TransformNode("coins_root", scene);
     const coinPool: CoinInstance[] = [];
