@@ -9,6 +9,7 @@ export class ObstacleGLBBuilder {
         duck: [],
         platform: [],
         insuperable: [],
+        hamburger: [],
     };
 
     private static loaded = false;

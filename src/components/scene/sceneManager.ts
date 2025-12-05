@@ -27,14 +27,14 @@ export function createLighting(scene: BABYLON.Scene) {
         new BABYLON.Vector3(0, 1, 0),
         scene
     );
-    hemisphericLight.intensity = 0;
+    hemisphericLight.intensity = 0.5;
 
     const directionalLight = new BABYLON.DirectionalLight(
         "dirLight",
         new BABYLON.Vector3(-0.5, -1, 0.5),
         scene
     );
-    directionalLight.intensity = 0.5;
+    directionalLight.intensity = 1.5;
 
     const shadowGenerator = new BABYLON.ShadowGenerator(2048, directionalLight);
     shadowGenerator.useExponentialShadowMap = true;
@@ -68,4 +68,50 @@ export function createCamera(
     camera.attachControl(canvas, true);
 
     return { camera };
+}
+
+// -----------------------------------------------------------------------------
+// SKY DOME SETUP
+// -----------------------------------------------------------------------------
+export function createSkyDome(scene: BABYLON.Scene, assetBase: string) {
+    // Create a large sphere for the sky dome
+    const skyDome = BABYLON.MeshBuilder.CreateSphere(
+        "skyDome",
+        {
+            diameter: 5000,
+            segments: 32,
+            sideOrientation: BABYLON.Mesh.BACKSIDE // Render inside of sphere
+        },
+        scene
+    );
+
+    // Create material with cloud texture
+    const skyMaterial = new BABYLON.StandardMaterial("skyMat", scene);
+    const cloudTexture = new BABYLON.Texture(
+        `${assetBase}sky_clouds.jpg`,
+        scene,
+        false,    // noMipmap
+        false,    // invertY - false to flip right-side up
+        BABYLON.Texture.TRILINEAR_SAMPLINGMODE
+    );
+
+    // Tile the texture more for smaller clouds
+    cloudTexture.uScale = 8;
+    cloudTexture.vScale = 4;
+
+    skyMaterial.diffuseTexture = cloudTexture;
+    skyMaterial.emissiveTexture = cloudTexture; // Self-illuminated sky
+    skyMaterial.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+    skyMaterial.specularColor = new BABYLON.Color3(0, 0, 0); // No specular
+    skyMaterial.backFaceCulling = false;
+    skyMaterial.disableLighting = true; // Sky doesn't need lighting
+
+    skyDome.material = skyMaterial;
+    skyDome.isPickable = false;
+    skyDome.infiniteDistance = true; // Sky stays at infinite distance
+
+    // Position sky dome at origin
+    skyDome.position = BABYLON.Vector3.Zero();
+
+    return { skyDome, skyMaterial, cloudTexture };
 }

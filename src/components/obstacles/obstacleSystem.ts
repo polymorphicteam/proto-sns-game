@@ -3,10 +3,11 @@ import * as BABYLON from "@babylonjs/core";
 import { scanObstacleFolders } from "./obstacleModelScanner";
 import { ObstacleGLBBuilder } from "./obstacleGLBBuilder";
 import { getObstacleMaterial } from "../materials/MaterialFactory";
+import { buildHamburgerObstacle } from "./hamburgerBuilder";
 
 import { ALL_PATTERNS, ObstaclePattern } from "./obstaclePatterns";
 
-export type ObstacleType = "jump" | "duck" | "platform" | "insuperable";
+export type ObstacleType = "jump" | "duck" | "platform" | "insuperable" | "hamburger";
 
 export interface ObstacleSystemOptions {
   laneWidth?: number;
@@ -95,15 +96,11 @@ function buildInsuperableObstacle(
   scene: BABYLON.Scene,
   material: BABYLON.Material
 ): BABYLON.Mesh {
-  // Tall wall that cannot be jumped over
-  const mesh = BABYLON.MeshBuilder.CreateBox(
-    "obs_insuperable",
-    { width: 12, height: 25, depth: 10 },
-    scene
-  );
-  mesh.material = material;
-  mesh.position.y = 12.5; // Center at half height
-  return mesh;
+  // Giant hamburger obstacle that cannot be jumped over!
+  // Use scale 2.5 to make it tall enough to be impassable
+  const hamburger = buildHamburgerObstacle(scene, 2.5);
+  hamburger.name = "obs_insuperable";
+  return hamburger;
 }
 
 import { useGameStore } from "../../store/gameStore";
@@ -128,6 +125,7 @@ export function createObstacleSystem(
     duck: getObstacleMaterial(scene, "duck"),
     platform: getObstacleMaterial(scene, "platform"),
     insuperable: getObstacleMaterial(scene, "insuperable"),
+    hamburger: getObstacleMaterial(scene, "jump"), // Uses jump material as fallback
   };
 
   // Initialize GLB system
@@ -147,6 +145,7 @@ export function createObstacleSystem(
     duck: () => buildDuckObstacle(scene, materials.duck),
     platform: () => buildPlatformObstacle(scene, materials.platform),
     insuperable: () => buildInsuperableObstacle(scene, materials.insuperable),
+    hamburger: () => buildHamburgerObstacle(scene, 1.0),
   };
 
   const obstaclePool: ObstacleInstance[] = [];

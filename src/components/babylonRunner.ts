@@ -1,7 +1,7 @@
 import * as BABYLON from "@babylonjs/core";
 import "@babylonjs/loaders";
 
-import { createScene, createLighting, createCamera } from "./scene/sceneManager";
+import { createScene, createLighting, createCamera, createSkyDome } from "./scene/sceneManager";
 import { getAssetRoots } from "./assetPaths";
 import { setupPlayerController } from "./player/playerController";
 import { setupEnvironment } from "./world/environment";
@@ -80,7 +80,23 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   // --------------------------------------------
   // ASSETS ROOTS
   // --------------------------------------------
-  const { modelRoot, textureRoot } = getAssetRoots();
+  const { assetBase, modelRoot, textureRoot } = getAssetRoots();
+
+  // --------------------------------------------
+  // SKY DOME
+  // --------------------------------------------
+  createSkyDome(scene, assetBase);
+
+  // --------------------------------------------
+  // TEST HAMBURGER (for preview)
+  // --------------------------------------------
+  import("./obstacles/hamburgerBuilder").then(({ buildHamburgerObstacle }) => {
+    const testBurger = buildHamburgerObstacle(scene); // Uses default 0.75 scale
+    testBurger.position.set(0, 0, -20); // Center, in front of player
+    testBurger.receiveShadows = true;
+    shadowGenerator.addShadowCaster(testBurger, true);
+    console.log("🍔 Test hamburger spawned at (0, 0, -20)");
+  });
 
   // --------------------------------------------
   // SCROLL SPEED SIGNAL

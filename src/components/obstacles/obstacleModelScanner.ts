@@ -8,6 +8,7 @@ export function scanObstacleFolders(): ObstacleModelMap {
         duck: [],
         platform: [],
         insuperable: [],
+        hamburger: [],
     };
 
     try {

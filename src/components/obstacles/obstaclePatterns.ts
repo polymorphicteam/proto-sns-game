@@ -138,4 +138,54 @@ export const PATTERN_CITY: ObstaclePattern = [
     }
 ];
 
-export const ALL_PATTERNS = [PATTERN_NIGHTMARE, PATTERN_CITY];
+// FOOD PATTERN (Features hamburgers!)
+export const PATTERN_FOOD: ObstaclePattern = [
+    // Hamburger intro
+    {
+        obstacles: [{ type: "hamburger", laneIndex: 0 }],
+        coins: [{ laneIndex: -1, count: 3, spacing: 8 }, { laneIndex: 1, count: 3, spacing: 8 }],
+        delayNext: 1.5
+    },
+    {
+        obstacles: [{ type: "hamburger", laneIndex: -1 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8 }],
+        delayNext: 1.5
+    },
+    {
+        obstacles: [{ type: "hamburger", laneIndex: 1 }],
+        coins: [{ laneIndex: -1, count: 3, spacing: 8 }],
+        delayNext: 1.5
+    },
+
+    // Mixed obstacles
+    { obstacles: [{ type: "duck", laneIndex: 0 }], delayNext: 1.3 },
+    {
+        obstacles: [{ type: "hamburger", laneIndex: -1 }, { type: "hamburger", laneIndex: 1 }],
+        coins: [{ laneIndex: 0, count: 5, spacing: 8 }],
+        delayNext: 1.5
+    },
+
+    // Jump over hamburgers
+    {
+        obstacles: [{ type: "hamburger", laneIndex: 0 }],
+        delayNext: 1.2
+    },
+    {
+        obstacles: [{ type: "hamburger", laneIndex: 0 }],
+        delayNext: 1.2
+    },
+
+    // Platform with hamburgers on sides
+    {
+        obstacles: [
+            { type: "hamburger", laneIndex: -1 },
+            { type: "platform", laneIndex: 0 },
+            { type: "hamburger", laneIndex: 1 }
+        ],
+        coins: [{ laneIndex: 0, yOffset: 15, count: 4, spacing: 8 }],
+        delayNext: 2.0
+    },
+];
+
+export const ALL_PATTERNS = [PATTERN_NIGHTMARE, PATTERN_CITY, PATTERN_FOOD];
+
