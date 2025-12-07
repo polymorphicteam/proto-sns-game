@@ -1,5 +1,6 @@
 // src/components/obstacles/hamburgerBuilder.ts
 import * as BABYLON from "@babylonjs/core";
+import { getHamburgerMaterial } from "../materials/MaterialFactory";
 
 /**
  * Creates a 3D hamburger mesh using Babylon.js primitives
@@ -13,37 +14,14 @@ export function buildHamburgerObstacle(
     const hamburger = new BABYLON.Mesh("obs_hamburger", scene);
 
     // ============================================
-    // MATERIALS
+    // MATERIALS (from MaterialFactory)
     // ============================================
-
-    // Bun (golden brown)
-    const bunMaterial = new BABYLON.StandardMaterial("bunMat", scene);
-    bunMaterial.diffuseColor = new BABYLON.Color3(0.85, 0.55, 0.25);
-    bunMaterial.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
-
-    // Sesame seeds (cream/white)
-    const sesameMaterial = new BABYLON.StandardMaterial("sesameMat", scene);
-    sesameMaterial.diffuseColor = new BABYLON.Color3(0.95, 0.92, 0.8);
-
-    // Patty (dark brown)
-    const pattyMaterial = new BABYLON.StandardMaterial("pattyMat", scene);
-    pattyMaterial.diffuseColor = new BABYLON.Color3(0.35, 0.2, 0.1);
-    pattyMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-
-    // Lettuce (green)
-    const lettuceMaterial = new BABYLON.StandardMaterial("lettuceMat", scene);
-    lettuceMaterial.diffuseColor = new BABYLON.Color3(0.3, 0.7, 0.2);
-    lettuceMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-
-    // Tomato (red)
-    const tomatoMaterial = new BABYLON.StandardMaterial("tomatoMat", scene);
-    tomatoMaterial.diffuseColor = new BABYLON.Color3(0.9, 0.2, 0.15);
-    tomatoMaterial.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3);
-
-    // Cheese (yellow/orange)
-    const cheeseMaterial = new BABYLON.StandardMaterial("cheeseMat", scene);
-    cheeseMaterial.diffuseColor = new BABYLON.Color3(1.0, 0.8, 0.2);
-    cheeseMaterial.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+    const bunMaterial = getHamburgerMaterial(scene, "bun");
+    const sesameMaterial = getHamburgerMaterial(scene, "sesame");
+    const pattyMaterial = getHamburgerMaterial(scene, "patty");
+    const lettuceMaterial = getHamburgerMaterial(scene, "lettuce");
+    const tomatoMaterial = getHamburgerMaterial(scene, "tomato");
+    const cheeseMaterial = getHamburgerMaterial(scene, "cheese");
 
     // ============================================
     // DIMENSIONS (scaled)

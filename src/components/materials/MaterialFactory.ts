@@ -38,6 +38,11 @@ const MATERIAL_CONFIGS = {
         // For GLB overrides - will use existing albedo but normalize PBR settings
         metallic: 0.0,
         roughness: 0.85,
+    },
+    // Hamburger component materials
+    hamburger: {
+        metallic: 0.0,
+        roughness: 0.7,
     }
 };
 
@@ -60,6 +65,30 @@ const OBSTACLE_COLORS: Record<string, { albedo: BABYLON.Color3; emissive: BABYLO
     insuperable: {
         albedo: new BABYLON.Color3(0.5, 0.2, 0.8),
         emissive: new BABYLON.Color3(0.1, 0.05, 0.2),
+    },
+};
+
+/**
+ * Hamburger component color configurations
+ */
+const HAMBURGER_COLORS: Record<string, { albedo: BABYLON.Color3; emissive?: BABYLON.Color3 }> = {
+    bun: {
+        albedo: new BABYLON.Color3(0.85, 0.55, 0.25),
+    },
+    patty: {
+        albedo: new BABYLON.Color3(0.35, 0.2, 0.1),
+    },
+    cheese: {
+        albedo: new BABYLON.Color3(1.0, 0.8, 0.2),
+    },
+    lettuce: {
+        albedo: new BABYLON.Color3(0.3, 0.7, 0.2),
+    },
+    tomato: {
+        albedo: new BABYLON.Color3(0.9, 0.2, 0.15),
+    },
+    sesame: {
+        albedo: new BABYLON.Color3(0.95, 0.92, 0.8),
     },
 };
 
@@ -203,6 +232,29 @@ export function applyUnifiedMaterialsToHierarchy(
     for (const child of children) {
         applyUnifiedMaterialToGLBMesh(child, scene, type);
     }
+}
+
+/**
+ * Get or create hamburger component material
+ */
+export function getHamburgerMaterial(
+    scene: BABYLON.Scene,
+    component: string
+): BABYLON.PBRMaterial {
+    const key = `hamburger_${component}`;
+    if (materialCache.has(key)) {
+        return materialCache.get(key)!;
+    }
+
+    const colors = HAMBURGER_COLORS[component] || HAMBURGER_COLORS.bun;
+    const mat = new BABYLON.PBRMaterial(key, scene);
+    mat.albedoColor = colors.albedo;
+    mat.emissiveColor = colors.emissive ?? BABYLON.Color3.Black();
+    mat.metallic = MATERIAL_CONFIGS.hamburger.metallic;
+    mat.roughness = MATERIAL_CONFIGS.hamburger.roughness;
+
+    materialCache.set(key, mat);
+    return mat;
 }
 
 /**
