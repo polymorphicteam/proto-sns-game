@@ -25,6 +25,17 @@ export const GameOverlay: React.FC = () => {
     const gameState = useGameStore((state) => state.gameState);
     const activePowerUps = useGameStore((state) => state.activePowerUps);
 
+    // Match timer state
+    const matchTimeRemaining = useGameStore((state) => state.matchTimeRemaining);
+    const isMatchTimerActive = useGameStore((state) => state.isMatchTimerActive);
+
+    // Format time as MM:SS
+    const formatTime = (seconds: number): string => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
     // Show loading screen while assets are loading
     if (isLoading) {
         return <LoadingScreen />;
@@ -56,6 +67,13 @@ export const GameOverlay: React.FC = () => {
                 </div>
             </div>
 
+            {/* Match Timer Display - Top Center */}
+            {isMatchTimerActive && (
+                <div className={`match-timer ${matchTimeRemaining <= 10 ? 'timer-warning' : ''}`}>
+                    ⏱️ {formatTime(matchTimeRemaining)}
+                </div>
+            )}
+
             {/* Power-ups Display - Prepared for future use */}
             {activePowerUps.length > 0 && (
                 <div className="powerups-container">
@@ -70,7 +88,9 @@ export const GameOverlay: React.FC = () => {
             {/* Game Over Screen - Conditional */}
             {gameState === 'gameover' && (
                 <div className="gameover-overlay">
-                    <div className="gameover-text">GAME OVER</div>
+                    <div className="gameover-text">
+                        {matchTimeRemaining <= 0 ? "TIME'S UP!" : "GAME OVER"}
+                    </div>
                     <div className="gameover-subtext">Press R to restart</div>
                 </div>
             )}

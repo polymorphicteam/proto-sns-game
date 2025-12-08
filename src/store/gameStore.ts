@@ -41,6 +41,11 @@ export interface GameState {
     // Countdown state (3, 2, 1, 0=GO!, null=hidden)
     countdownValue: number | null;
 
+    // Match timer state
+    matchDuration: number;        // Total match duration in seconds (default: 120 = 2 minutes)
+    matchTimeRemaining: number;   // Time remaining in seconds
+    isMatchTimerActive: boolean;  // Whether timer is currently running
+
     // Power-ups (prepared for future)
     activePowerUps: PowerUp[];
 }
@@ -75,6 +80,11 @@ interface GameActions {
     // Countdown management
     setCountdown: (value: number | null) => void;
 
+    // Match timer management
+    startMatchTimer: () => void;
+    tickMatchTimer: (deltaSeconds: number) => void;
+    stopMatchTimer: () => void;
+
     // Full reset
     resetGame: () => void;
 }
@@ -94,6 +104,9 @@ const INITIAL_STATE: GameState = {
     gameState: 'idle',
     isLoading: true,
     countdownValue: null,
+    matchDuration: 10,        // 2 minutes
+    matchTimeRemaining: 10,   // Starts at full duration
+    isMatchTimerActive: false,
     activePowerUps: [],
 };
 
@@ -177,6 +190,40 @@ export const useGameStore = create<GameStore>((set) => ({
     // Countdown actions
     setCountdown: (countdownValue: number | null) => {
         set({ countdownValue });
+    },
+
+    // Match timer actions
+    startMatchTimer: () => {
+        set((state) => ({
+            isMatchTimerActive: true,
+            matchTimeRemaining: state.matchDuration,
+        }));
+        console.log('⏱️ Match timer started');
+    },
+
+    tickMatchTimer: (deltaSeconds: number) =>
+        set((state) => {
+            if (!state.isMatchTimerActive) return {};
+            if (state.gameState !== 'playing') return {};
+
+            const newTime = Math.max(0, state.matchTimeRemaining - deltaSeconds);
+
+            // Check if time ran out
+            if (newTime <= 0) {
+                console.log("⏱️ TIME'S UP! Match ended.");
+                return {
+                    matchTimeRemaining: 0,
+                    isMatchTimerActive: false,
+                    gameState: 'gameover',
+                };
+            }
+
+            return { matchTimeRemaining: newTime };
+        }),
+
+    stopMatchTimer: () => {
+        set({ isMatchTimerActive: false });
+        console.log('⏱️ Match timer stopped');
     },
 
     // Reset everything

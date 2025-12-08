@@ -704,6 +704,13 @@ export function setupPlayerController(
     // PAUSE CHECK: Freeze EVERYTHING
     if (useGameStore.getState().gameState === "paused") return;
 
+    // MATCH TIMER UPDATE
+    const store = useGameStore.getState();
+    if (store.isMatchTimerActive && store.gameState === "playing") {
+      const timerDt = scene.getEngine().getDeltaTime() / 1000;
+      store.tickMatchTimer(timerDt);
+    }
+
     updateMovementState();
 
     const dt = scene.getEngine().getDeltaTime() / 1000;

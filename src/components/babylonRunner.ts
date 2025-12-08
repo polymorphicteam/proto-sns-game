@@ -132,6 +132,8 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
             useGameStore.getState().setCountdown(null);
             console.log("🏃 Starting game after countdown");
             player.startGame();
+            useGameStore.getState().startMatchTimer();
+            console.log("⏱️ Match timer started (2 minutes)");
           }, 500);
         }
       };
