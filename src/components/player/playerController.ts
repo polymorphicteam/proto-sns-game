@@ -857,6 +857,7 @@ export function setupPlayerController(
 
     // 4. Start Game
     startGame();
+    useGameStore.getState().startMatchTimer();
   }
 
   // ------------------------------------------
