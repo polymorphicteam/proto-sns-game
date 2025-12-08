@@ -104,8 +104,8 @@ const INITIAL_STATE: GameState = {
     gameState: 'idle',
     isLoading: true,
     countdownValue: null,
-    matchDuration: 10,        // 2 minutes
-    matchTimeRemaining: 10,   // Starts at full duration
+    matchDuration: 120,        // 2 minutes
+    matchTimeRemaining: 120,   // Starts at full duration
     isMatchTimerActive: false,
     activePowerUps: [],
 };

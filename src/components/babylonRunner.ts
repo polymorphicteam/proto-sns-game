@@ -87,16 +87,7 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   // --------------------------------------------
   createSkyDome(scene, assetBase);
 
-  // --------------------------------------------
-  // TEST HAMBURGER (for preview)
-  // --------------------------------------------
-  import("./obstacles/hamburgerBuilder").then(({ buildHamburgerObstacle }) => {
-    const testBurger = buildHamburgerObstacle(scene); // Uses default 0.75 scale
-    testBurger.position.set(0, 0, -20); // Center, in front of player
-    testBurger.receiveShadows = true;
-    shadowGenerator.addShadowCaster(testBurger, true);
-    console.log("🍔 Test hamburger spawned at (0, 0, -20)");
-  });
+
 
   // --------------------------------------------
   // SCROLL SPEED SIGNAL
