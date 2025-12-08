@@ -711,6 +711,21 @@ export function setupPlayerController(
       store.tickMatchTimer(timerDt);
     }
 
+    // GAME OVER HANDLING - React to gameState changes
+    if (store.gameState === "gameover") {
+      // Ensure player is in Death state and everything stops
+      if (stateMachine.currentState !== "Death") {
+        console.log("🎮 Game Over detected - setting player to Death state");
+        jumpMotion.active = false;
+        jumpMotion.velocity = 0;
+        bounceBackActive = false;
+        bounceBackTimer = 0;
+        setScrollSpeed(0);
+        stateMachine.setPlayerState("Death", true);
+      }
+      return; // Skip all other updates when game is over
+    }
+
     updateMovementState();
 
     const dt = scene.getEngine().getDeltaTime() / 1000;
