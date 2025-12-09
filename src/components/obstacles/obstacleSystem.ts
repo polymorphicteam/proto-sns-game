@@ -9,6 +9,8 @@ import { ALL_PATTERNS, ObstaclePattern } from "./obstaclePatterns";
 
 export type ObstacleType = "jump" | "duck" | "platform" | "insuperable" | "hamburger";
 
+const HAMBURGER_AS_JUMP_PROBABILITY = 0.7;
+
 export interface ObstacleSystemOptions {
   laneWidth?: number;
   laneCount?: number;
@@ -33,6 +35,10 @@ export interface ObstacleInstance {
   collisionMeshes: BABYLON.AbstractMesh[];
   type: ObstacleType;
   variant?: number;
+  /**
+   * If true, this is a special hamburger instance masquerading as a "jump" obstacle.
+   */
+  isHamburgerVariant?: boolean;
   active: boolean;
 }
 
@@ -152,16 +158,30 @@ export function createObstacleSystem(
   const activeObstacles: ObstacleInstance[] = [];
 
   function acquire(type: ObstacleType) {
+    // Determine if we should swap a "jump" for a "hamburger"
+    let useHamburger = false;
+    if (type === "jump") {
+      useHamburger = Math.random() < HAMBURGER_AS_JUMP_PROBABILITY;
+    }
+
     const variantCount = ObstacleGLBBuilder.getVariantCount(type);
     const variantIndex =
       variantCount > 0 ? Math.floor(Math.random() * variantCount) : undefined;
 
     const pooled = obstaclePool.find((o) => {
       if (o.type !== type || o.active) return false;
+
+      // Strict check match for hamburger variant
+      // If useHamburger is true, we ONLY want isHamburgerVariant === true
+      // If useHamburger is false, we ONLY want isHamburgerVariant === false (or undefined)
+      const isHamburger = !!o.isHamburgerVariant;
+      if (isHamburger !== useHamburger) return false;
+
       if (variantIndex === undefined) return true;
       // Allow variant-specific match, or fall back to a generic mesh (no variant)
       return o.variant === variantIndex || o.variant === undefined;
     });
+
     if (pooled) {
       pooled.active = true;
       pooled.mesh.setEnabled(true);
@@ -171,26 +191,39 @@ export function createObstacleSystem(
     // Try to get a GLB mesh first
     let mesh: BABYLON.AbstractMesh | null = null;
     let collisionMeshes: BABYLON.AbstractMesh[] | null = null;
-    let variantUsed = variantIndex;
+    let variantUsed: number | undefined = variantIndex;
 
-    const glbResult =
-      variantIndex !== undefined
-        ? ObstacleGLBBuilder.getMesh(type, scene, variantIndex)
-        : ObstacleGLBBuilder.getMesh(type, scene);
+    // By default not a hamburger variant unless explicitly requested via probability swap
+    let isHamburgerVariant = false;
 
-    if (glbResult) {
-      mesh = glbResult.root;
-      collisionMeshes = glbResult.collisionMeshes;
-    } else {
-      // Fallback to default builder
-      mesh = obstacleBuilders[type]();
+    if (useHamburger) {
+      // Bypass GLB loading entirely for hamburger swap
+      // Use the procedural hamburger builder
+      // Note: We keep type="jump" for the system, but flag it as isHamburgerVariant
+      mesh = buildHamburgerObstacle(scene, 1.0);
       collisionMeshes = [mesh];
       variantUsed = undefined;
+      isHamburgerVariant = true;
+    } else {
+      const glbResult =
+        variantIndex !== undefined
+          ? ObstacleGLBBuilder.getMesh(type, scene, variantIndex)
+          : ObstacleGLBBuilder.getMesh(type, scene);
+
+      if (glbResult) {
+        mesh = glbResult.root;
+        collisionMeshes = glbResult.collisionMeshes;
+      } else {
+        // Fallback to default builder
+        mesh = obstacleBuilders[type]();
+        collisionMeshes = [mesh];
+        variantUsed = undefined;
+      }
     }
 
     mesh.parent = root;
     mesh.receiveShadows = true;
-    mesh.metadata = { obstacleType: type, variant: variantUsed };
+    mesh.metadata = { obstacleType: type, variant: variantUsed, isHamburgerVariant };
     shadowGenerator.addShadowCaster(mesh, true);
 
     const created: ObstacleInstance = {
@@ -198,6 +231,7 @@ export function createObstacleSystem(
       collisionMeshes: collisionMeshes ?? [mesh],
       type,
       variant: variantUsed,
+      isHamburgerVariant,
       active: true
     };
     obstaclePool.push(created);
