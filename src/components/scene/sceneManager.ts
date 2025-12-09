@@ -68,13 +68,14 @@ export function createCamera(
     const camera = new BABYLON.ArcRotateCamera(
         "camera",
         Math.PI / 2,
-        Math.PI / 3,
-        25,
+        Math.PI / 2.5,
+        60,
         new BABYLON.Vector3(0, 8, 0),
         scene
     );
 
-    camera.attachControl(canvas, true);
+    // Lock camera - disable all user inputs
+    camera.inputs.clear(); // Remove all camera inputs (no rotate/zoom/pan)
 
     return { camera };
 }
