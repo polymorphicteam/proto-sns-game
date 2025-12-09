@@ -10,6 +10,7 @@ import { ALL_PATTERNS, ObstaclePattern } from "./obstaclePatterns";
 export type ObstacleType = "jump" | "duck" | "platform" | "insuperable" | "hamburger";
 
 const HAMBURGER_AS_JUMP_PROBABILITY = 0.7;
+const HAMBURGER_AS_INSUPERABLE_PROBABILITY = 0.5;
 
 export interface ObstacleSystemOptions {
   laneWidth?: number;
@@ -158,10 +159,16 @@ export function createObstacleSystem(
   const activeObstacles: ObstacleInstance[] = [];
 
   function acquire(type: ObstacleType) {
-    // Determine if we should swap a "jump" for a "hamburger"
+    // Determine if we should swap a "jump" or "insuperable" for a "hamburger"
     let useHamburger = false;
-    if (type === "jump") {
-      useHamburger = Math.random() < HAMBURGER_AS_JUMP_PROBABILITY;
+
+    // GUARD: If specifically requesting a hamburger, don't mess with probabilities
+    if (type !== "hamburger") {
+      if (type === "jump") {
+        useHamburger = Math.random() < HAMBURGER_AS_JUMP_PROBABILITY;
+      } else if (type === "insuperable") {
+        useHamburger = Math.random() < HAMBURGER_AS_INSUPERABLE_PROBABILITY;
+      }
     }
 
     const variantCount = ObstacleGLBBuilder.getVariantCount(type);
@@ -199,8 +206,11 @@ export function createObstacleSystem(
     if (useHamburger) {
       // Bypass GLB loading entirely for hamburger swap
       // Use the procedural hamburger builder
-      // Note: We keep type="jump" for the system, but flag it as isHamburgerVariant
-      mesh = buildHamburgerObstacle(scene, 1.0);
+      // Note: We keep type="jump" or "insuperable" for the system, but flag it as isHamburgerVariant
+
+      const scale = type === "insuperable" ? 2.5 : 1.0;
+      mesh = buildHamburgerObstacle(scene, scale);
+
       collisionMeshes = [mesh];
       variantUsed = undefined;
       isHamburgerVariant = true;
@@ -219,6 +229,8 @@ export function createObstacleSystem(
         collisionMeshes = [mesh];
         variantUsed = undefined;
       }
+      // Explicitly mark as NOT a hamburger variant (even if fallback looks like one)
+      isHamburgerVariant = false;
     }
 
     mesh.parent = root;
