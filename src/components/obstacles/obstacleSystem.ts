@@ -98,7 +98,7 @@ function buildInsuperableObstacle(
 ): BABYLON.Mesh {
   // Giant hamburger obstacle that cannot be jumped over!
   // Use scale 2.5 to make it tall enough to be impassable
-  const hamburger = buildHamburgerObstacle(scene, 2.5);
+  const hamburger = buildHamburgerObstacle(scene, 2);
   hamburger.name = "obs_insuperable";
   return hamburger;
 }
