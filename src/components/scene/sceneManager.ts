@@ -34,10 +34,19 @@ export function createLighting(scene: BABYLON.Scene) {
         new BABYLON.Vector3(-0.5, -1, 0.5),
         scene
     );
+    directionalLight.position = new BABYLON.Vector3(20, 40, -30);
     directionalLight.intensity = 1.5;
 
+    // Configure shadow generator
     const shadowGenerator = new BABYLON.ShadowGenerator(2048, directionalLight);
-    shadowGenerator.useExponentialShadowMap = true;
+    shadowGenerator.usePercentageCloserFiltering = true; // Softer shadows
+    shadowGenerator.filteringQuality = BABYLON.ShadowGenerator.QUALITY_MEDIUM;
+    shadowGenerator.bias = 0.001;
+    shadowGenerator.normalBias = 0.02;
+
+    // Configure shadow frustum for better coverage
+    directionalLight.shadowMinZ = 1;
+    directionalLight.shadowMaxZ = 200;
 
     return {
         hemisphericLight,

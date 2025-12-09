@@ -7,11 +7,15 @@ export interface AssetRoots {
 }
 
 export function getAssetRoots(): AssetRoots {
-  const isGithubPages =
-    typeof window !== "undefined" &&
-    window.location.hostname.endsWith("github.io");
+  const hostname = typeof window !== "undefined" ? window.location.hostname : "";
 
-  const assetBase = isGithubPages
+  // Use GitHub LFS CDN for external deployments (GitHub Pages, Vercel, etc.)
+  const isExternalDeployment =
+    hostname.endsWith("github.io") ||
+    hostname.endsWith("vercel.app") ||
+    hostname.endsWith(".vercel.app");
+
+  const assetBase = isExternalDeployment
     ? "https://media.githubusercontent.com/media/elektrazone/INFIN_BBOY_REPO/main/public/scene/assets/"
     : "scene/assets/";
 
