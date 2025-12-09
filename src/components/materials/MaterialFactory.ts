@@ -258,6 +258,25 @@ export function getHamburgerMaterial(
 }
 
 /**
+ * Get the unified PBR material for hamburgers
+ * Uses Vertex Colors for component differentiation
+ */
+export function getHamburgerUnifiedMaterial(scene: BABYLON.Scene): BABYLON.PBRMaterial {
+    const key = "hamburgerUnifiedPBR";
+    if (materialCache.has(key)) {
+        return materialCache.get(key)!;
+    }
+
+    const mat = new BABYLON.PBRMaterial(key, scene);
+    // mat.useVertexColors = true; // Not a direct property on PBRMaterial in some versions, mesh.useVertexColors handles this
+    mat.metallic = 0.0;
+    mat.roughness = 0.9;
+
+    materialCache.set(key, mat);
+    return mat;
+}
+
+/**
  * Clear material cache (useful for scene disposal)
  */
 export function clearMaterialCache(): void {

@@ -1,6 +1,21 @@
 // src/components/obstacles/hamburgerBuilder.ts
 import * as BABYLON from "@babylonjs/core";
-import { getHamburgerMaterial } from "../materials/MaterialFactory";
+import { getHamburgerUnifiedMaterial } from "../materials/MaterialFactory";
+
+/**
+ * Applies a single color to all vertices of a mesh
+ */
+function applyVertexColor(mesh: BABYLON.Mesh, color: number[]): void {
+    const count = mesh.getTotalVertices();
+    if (count === 0) return;
+
+    const colors: number[] = [];
+    for (let i = 0; i < count; i++) {
+        colors.push(color[0], color[1], color[2], color[3]);
+    }
+
+    mesh.setVerticesData(BABYLON.VertexBuffer.ColorKind, colors);
+}
 
 /**
  * Creates a 3D hamburger mesh using Babylon.js primitives
@@ -14,14 +29,15 @@ export function buildHamburgerObstacle(
     const hamburger = new BABYLON.Mesh("obs_hamburger", scene);
 
     // ============================================
-    // MATERIALS (from MaterialFactory)
+    // PALETTE
     // ============================================
-    const bunMaterial = getHamburgerMaterial(scene, "bun");
-    const sesameMaterial = getHamburgerMaterial(scene, "sesame");
-    const pattyMaterial = getHamburgerMaterial(scene, "patty");
-    const lettuceMaterial = getHamburgerMaterial(scene, "lettuce");
-    const tomatoMaterial = getHamburgerMaterial(scene, "tomato");
-    const cheeseMaterial = getHamburgerMaterial(scene, "cheese");
+    // RGBA colors for vertex coloring
+    const cBun = [1.0, 0.95, 0.75, 1];
+    const cPatty = [0.40, 0.20, 0.10, 1];
+    const cCheese = [1.00, 0.90, 0.20, 1];
+    const cLettuce = [0.20, 0.80, 0.20, 1];
+    const cTomato = [1.00, 0.20, 0.20, 1];
+    const cSesame = [0.95, 0.85, 0.60, 1];
 
     // ============================================
     // DIMENSIONS (scaled)
@@ -45,7 +61,8 @@ export function buildHamburgerObstacle(
         },
         scene
     );
-    bottomBun.material = bunMaterial;
+    applyVertexColor(bottomBun, cBun);
+
     yOffset = bunHeight / 2;
     bottomBun.position.y = yOffset;
     bottomBun.parent = hamburger;
@@ -64,7 +81,8 @@ export function buildHamburgerObstacle(
         },
         scene
     );
-    patty.material = pattyMaterial;
+    applyVertexColor(patty, cPatty);
+
     yOffset += pattyHeight / 2;
     patty.position.y = yOffset;
     patty.parent = hamburger;
@@ -83,7 +101,8 @@ export function buildHamburgerObstacle(
         },
         scene
     );
-    cheese.material = cheeseMaterial;
+    applyVertexColor(cheese, cCheese);
+
     yOffset += 0.15 * scale;
     cheese.position.y = yOffset;
     cheese.rotation.y = Math.PI / 4; // Diamond orientation
@@ -107,7 +126,8 @@ export function buildHamburgerObstacle(
             },
             scene
         );
-        leaf.material = lettuceMaterial;
+        applyVertexColor(leaf, cLettuce);
+
         leaf.position.y = yOffset;
         leaf.rotation.y = (Math.PI / 3) * i;
         leaf.position.x = Math.cos((Math.PI / 3) * i) * bunRadius * 0.3;
@@ -128,7 +148,8 @@ export function buildHamburgerObstacle(
         { diameter: tomatoRadius * 2, height: tomatoHeight, tessellation: 16 },
         scene
     );
-    tomato1.material = tomatoMaterial;
+    applyVertexColor(tomato1, cTomato);
+
     tomato1.position.y = yOffset;
     tomato1.position.x = -1.5 * scale;
     tomato1.parent = hamburger;
@@ -138,7 +159,8 @@ export function buildHamburgerObstacle(
         { diameter: tomatoRadius * 2, height: tomatoHeight, tessellation: 16 },
         scene
     );
-    tomato2.material = tomatoMaterial;
+    applyVertexColor(tomato2, cTomato);
+
     tomato2.position.y = yOffset;
     tomato2.position.x = 1.5 * scale;
     tomato2.parent = hamburger;
@@ -158,7 +180,8 @@ export function buildHamburgerObstacle(
         },
         scene
     );
-    topBun.material = bunMaterial;
+    applyVertexColor(topBun, cBun);
+
     // Position top bun right on top of tomatoes (no gap)
     topBun.position.y = yOffset;
     topBun.parent = hamburger;
@@ -186,7 +209,8 @@ export function buildHamburgerObstacle(
             },
             scene
         );
-        seed.material = sesameMaterial;
+        applyVertexColor(seed, cSesame);
+
         // Position on the dome surface
         const seedX = pos.x * scale;
         const seedZ = pos.z * scale;
@@ -211,13 +235,16 @@ export function buildHamburgerObstacle(
         const merged = BABYLON.Mesh.MergeMeshes(
             allChildren,
             true,  // Dispose source
-            true,  // Allow different materials  
+            false,  // Allow different materials (FALSE -> Single Material)
             hamburger, // Parent
             false, // Don't subdivide
-            true   // Multi-material
+            true   // Multi-material (FALSE -> Single SubMesh)
         );
         if (merged) {
             merged.name = "obs_hamburger";
+            merged.material = getHamburgerUnifiedMaterial(scene);
+            merged.useVertexColors = true;
+            merged.metadata = { isHamburger: true };
             return merged;
         }
     }
