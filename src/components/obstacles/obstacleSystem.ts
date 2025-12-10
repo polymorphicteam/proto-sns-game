@@ -208,7 +208,7 @@ export function createObstacleSystem(
       // Use the procedural hamburger builder
       // Note: We keep type="jump" or "insuperable" for the system, but flag it as isHamburgerVariant
 
-      const scale = type === "insuperable" ? 2.5 : 1.0;
+      const scale = type === "insuperable" ? 2.0 : 1.0;
       mesh = buildHamburgerObstacle(scene, scale);
 
       collisionMeshes = [mesh];

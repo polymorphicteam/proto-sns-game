@@ -32,12 +32,12 @@ export function buildHamburgerObstacle(
     // PALETTE
     // ============================================
     // RGBA colors for vertex coloring
-    const cBun = [1.0, 0.95, 0.75, 1];
+    const cBun = [0.95, 0.70, 0.30, 1];
     const cPatty = [0.40, 0.20, 0.10, 1];
     const cCheese = [1.00, 0.90, 0.20, 1];
     const cLettuce = [0.20, 0.80, 0.20, 1];
     const cTomato = [1.00, 0.20, 0.20, 1];
-    const cSesame = [0.95, 0.85, 0.60, 1];
+    const cSesame = [0.98, 0.96, 0.90, 1];
 
     // ============================================
     // DIMENSIONS (scaled)
