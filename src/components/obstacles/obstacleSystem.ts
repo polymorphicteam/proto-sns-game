@@ -10,7 +10,7 @@ import { ALL_PATTERNS, ObstaclePattern } from "./obstaclePatterns";
 export type ObstacleType = "jump" | "duck" | "platform" | "insuperable" | "hamburger";
 
 const HAMBURGER_AS_JUMP_PROBABILITY = 0.7;
-const HAMBURGER_AS_INSUPERABLE_PROBABILITY = 0.8;
+const HAMBURGER_AS_INSUPERABLE_PROBABILITY = 0.3;
 
 export interface ObstacleSystemOptions {
   laneWidth?: number;
@@ -105,7 +105,7 @@ function buildInsuperableObstacle(
 ): BABYLON.Mesh {
   // Giant hamburger obstacle that cannot be jumped over!
   // Use scale 2.5 to make it tall enough to be impassable
-  const hamburger = buildHamburgerObstacle(scene, 2);
+  const hamburger = buildHamburgerObstacle(scene, 1.5);
   hamburger.name = "obs_insuperable";
   return hamburger;
 }
