@@ -9,8 +9,8 @@ import { ALL_PATTERNS, ObstaclePattern } from "./obstaclePatterns";
 
 export type ObstacleType = "jump" | "duck" | "platform" | "insuperable" | "hamburger";
 
-const HAMBURGER_AS_JUMP_PROBABILITY = 0.7;
-const HAMBURGER_AS_INSUPERABLE_PROBABILITY = 0.3;
+const HAMBURGER_AS_JUMP_PROBABILITY = 0;
+const HAMBURGER_AS_INSUPERABLE_PROBABILITY = 0;
 
 export interface ObstacleSystemOptions {
   laneWidth?: number;
