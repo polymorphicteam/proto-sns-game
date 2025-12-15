@@ -28,6 +28,7 @@ export interface PlayerStateMachine {
   pauseAnimation: () => void;
   resumeAnimation: () => void;
   dispose: () => void;
+  setAllowAirStrafe: (allow: boolean) => void;
   readonly canStrafe: boolean;
 }
 
@@ -87,6 +88,7 @@ export function createPlayerStateMachine(
 
   let currentPlayerState: PlayerState = "Idle";
   let idleInitialized = false;
+  let allowAirStrafe = false;
 
   let playerAnimatable: BABYLON.Nullable<BABYLON.Animatable> = null;
   let animationGroupEndObs: BABYLON.Nullable<
@@ -267,10 +269,17 @@ export function createPlayerStateMachine(
     },
     get canStrafe() {
       const cfg = animationRanges[currentPlayerState];
+      // Override for Air states if enabled
+      if (allowAirStrafe && (currentPlayerState === "Jump" || currentPlayerState === "Fall")) {
+        return true;
+      }
       // Default true if undefined
       return (cfg as any).allowStrafe !== false;
     },
     setPlayerState,
+    setAllowAirStrafe: (allow: boolean) => {
+      allowAirStrafe = allow;
+    },
     ensureIdle,
     pauseAnimation,
     resumeAnimation,
