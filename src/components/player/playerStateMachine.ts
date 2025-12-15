@@ -28,6 +28,7 @@ export interface PlayerStateMachine {
   pauseAnimation: () => void;
   resumeAnimation: () => void;
   dispose: () => void;
+  readonly canStrafe: boolean;
 }
 
 // Loop ranges
@@ -54,15 +55,15 @@ const animationRanges = {
   Idle: buildLoopRange("Idle", 0),
   Run: buildLoopRange("Run", baseScrollSpeed),
   Slide: { start: 110, end: 154, loop: false, scroll: baseScrollSpeed },
-  Jump: { start: 155, end: 181, loop: false, scroll: baseScrollSpeed },
+  Jump: { start: 155, end: 181, loop: false, scroll: baseScrollSpeed, allowStrafe: false },
   Strafe_L: buildLoopRange("Strafe_L", baseScrollSpeed),
   Strafe_R: buildLoopRange("Strafe_R", baseScrollSpeed),
   Run_Idle: { start: 222, end: 248, loop: false, scroll: 0 },
 
   // Y" FIX: scroll = 0 durante Fall e Getup
-  Fall: { start: 249, end: 324, loop: false, scroll: 0 },
-  Getup: { start: 325, end: 552, loop: false, scroll: 0 },
-  Death: { start: 249, end: 324, loop: false, scroll: 0 },
+  Fall: { start: 249, end: 324, loop: false, scroll: 0, allowStrafe: false },
+  Getup: { start: 325, end: 552, loop: false, scroll: 0, allowStrafe: false },
+  Death: { start: 249, end: 324, loop: false, scroll: 0, allowStrafe: false },
 };
 
 const blockingStates = new Set<PlayerState>([
@@ -263,6 +264,11 @@ export function createPlayerStateMachine(
   return {
     get currentState() {
       return currentPlayerState;
+    },
+    get canStrafe() {
+      const cfg = animationRanges[currentPlayerState];
+      // Default true if undefined
+      return (cfg as any).allowStrafe !== false;
     },
     setPlayerState,
     ensureIdle,

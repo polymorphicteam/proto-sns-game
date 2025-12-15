@@ -660,6 +660,9 @@ export function setupPlayerController(
   function performLaneSwitch(dir: number) {
     if (!playerRoot || !stateMachine) return;
 
+    // Check if lateral movement is allowed in current state
+    if (!stateMachine.canStrafe) return;
+
     const previousLane = currentLane;
     currentLane = Math.min(maxLane, Math.max(-maxLane, currentLane + dir));
 
