@@ -30,7 +30,7 @@ export interface PlayerController {
 // DEBUG CONFIG
 // --------------------------------------------------
 const DEBUG = {
-  showRay: true,
+  showRay: false,
   showPlayerAABB: false,
   showPlatformAABB: true,
 };
@@ -109,6 +109,8 @@ export function setupPlayerController(
     slideCenterOffsetY: 0,
     initialized: false,
   };
+
+  let platformRayHelper: BABYLON.RayHelper | null = null;
 
   // Invulnerability duration must cover Fall (3.1s) + Getup (9.5s) animations + safety margin
   const INVULNERABILITY_AFTER_HIT = 4.0;
@@ -258,6 +260,7 @@ export function setupPlayerController(
 
     // 🔥 Fix: disabilita raycast piattaforme durante caduta o rialzata
     if (stateMachine?.currentState === "Fall" || stateMachine?.currentState === "Getup") {
+      platformRayHelper?.hide();
       return;
     }
 
@@ -279,14 +282,14 @@ export function setupPlayerController(
 
     // DEBUG RAY
     if (DEBUG.showRay) {
-      const rayEnd = origin.add(new BABYLON.Vector3(0, -rayLength, 0));
-      const line = BABYLON.MeshBuilder.CreateLines(
-        "debugRay",
-        { points: [origin, rayEnd] },
-        scene
-      );
-      line.color = BABYLON.Color3.Yellow();
-      setTimeout(() => line.dispose(), 50);
+      if (!platformRayHelper) {
+        platformRayHelper = new BABYLON.RayHelper(ray);
+      } else {
+        platformRayHelper.ray = ray;
+      }
+      platformRayHelper.show(scene, BABYLON.Color3.Yellow());
+    } else {
+      platformRayHelper?.hide();
     }
 
     const hit = scene.pickWithRay(ray, (mesh) => {
@@ -814,7 +817,12 @@ export function setupPlayerController(
     if (stateMachine) stateMachine.ensureIdle();
   }
 
-  function dispose() { }
+  function dispose() {
+    if (platformRayHelper) {
+      platformRayHelper.dispose();
+      platformRayHelper = null;
+    }
+  }
 
   function reset() {
     if (!playerRoot || !stateMachine) return;
