@@ -124,8 +124,8 @@ export function createObstacleSystem(
   const laneCount = options.laneCount ?? 3;
   const spawnZ = options.spawnZ ?? -1500;
   const despawnZ = options.despawnZ ?? 200;
-  const minSpawnDelay = options.minSpawnDelay ?? 1.2;
-  const maxSpawnDelay = options.maxSpawnDelay ?? 2.6;
+  const minSpawnDelay = options.minSpawnDelay ?? 2.0;
+  const maxSpawnDelay = options.maxSpawnDelay ?? 4.0;
 
   const materials = {
     jump: getObstacleMaterial(scene, "jump"),
