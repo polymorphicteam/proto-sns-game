@@ -180,7 +180,7 @@ export function getBuildingMaterial(
 
 /**
  * Apply unified material settings to a GLB mesh
- * This normalizes the PBR properties while preserving textures
+ * This preserves all original textures from the GLB
  */
 export function applyUnifiedMaterialToGLBMesh(
     mesh: BABYLON.AbstractMesh,
@@ -191,26 +191,43 @@ export function applyUnifiedMaterialToGLBMesh(
 
     if (!mat) return;
 
-    // If already PBRMaterial, just normalize the settings
+    // If already PBRMaterial, preserve all textures - only adjust metallic/roughness if no maps exist
     if (mat instanceof BABYLON.PBRMaterial) {
-        mat.metallic = MATERIAL_CONFIGS.obstacleGLB.metallic;
-        mat.roughness = MATERIAL_CONFIGS.obstacleGLB.roughness;
+        // Only override metallic/roughness if no texture maps are defined
+        if (!mat.metallicTexture) {
+            mat.metallic = MATERIAL_CONFIGS.obstacleGLB.metallic;
+        }
+        if (!mat.metallicTexture && !mat.microSurfaceTexture) {
+            mat.roughness = MATERIAL_CONFIGS.obstacleGLB.roughness;
+        }
+        // Keep all other textures as-is (albedo, normal, emissive, etc.)
         return;
     }
 
-    // Convert StandardMaterial to PBRMaterial
+    // Convert StandardMaterial to PBRMaterial while preserving textures
     if (mat instanceof BABYLON.StandardMaterial) {
-        const colors = type ? OBSTACLE_COLORS[type] : null;
         const pbr = new BABYLON.PBRMaterial(`${mat.name}_unified`, scene);
 
-        // Preserve albedo texture if exists
+        // Preserve all textures from StandardMaterial
         if (mat.diffuseTexture) {
             pbr.albedoTexture = mat.diffuseTexture;
         }
+        if (mat.bumpTexture) {
+            pbr.bumpTexture = mat.bumpTexture;
+        }
+        if (mat.emissiveTexture) {
+            pbr.emissiveTexture = mat.emissiveTexture;
+        }
+        if (mat.ambientTexture) {
+            pbr.ambientTexture = mat.ambientTexture;
+        }
+        if (mat.specularTexture) {
+            pbr.reflectivityTexture = mat.specularTexture;
+        }
 
-        // Use original color or type color
-        pbr.albedoColor = colors?.albedo ?? mat.diffuseColor ?? BABYLON.Color3.White();
-        pbr.emissiveColor = colors?.emissive ?? mat.emissiveColor ?? BABYLON.Color3.Black();
+        // Use original colors from the material
+        pbr.albedoColor = mat.diffuseColor ?? BABYLON.Color3.White();
+        pbr.emissiveColor = mat.emissiveColor ?? BABYLON.Color3.Black();
         pbr.metallic = MATERIAL_CONFIGS.obstacleGLB.metallic;
         pbr.roughness = MATERIAL_CONFIGS.obstacleGLB.roughness;
 
