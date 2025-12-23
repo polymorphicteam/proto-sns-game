@@ -93,6 +93,12 @@ export class ObstacleGLBBuilder {
         // Let's reset position to 0,0,0 relative to parent
         mesh.position.setAll(0);
 
+        // Apply type-specific scaling
+        // Duck obstacles (pipe) need to be larger so players can slide through
+        if (type === "duck") {
+            mesh.scaling.setAll(1.5);
+        }
+
         // Apply unified materials to the GLB mesh hierarchy
         applyUnifiedMaterialsToHierarchy(mesh, scene, type);
 
