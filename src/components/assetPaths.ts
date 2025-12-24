@@ -7,8 +7,15 @@ export interface AssetRoots {
 }
 
 export function getAssetRoots(): AssetRoots {
-  // Use relative paths - webpack CopyWebpackPlugin copies public/scene to dist/scene
-  const assetBase = "scene/assets/";
+  const hostname = typeof window !== "undefined" ? window.location.hostname : "";
+
+  // Use GitHub LFS CDN for Vercel deployments (LFS files aren't pulled during build)
+  const isVercel = hostname.endsWith(".vercel.app") || hostname.endsWith("vercel.app");
+
+  const assetBase = isVercel
+    ? "https://media.githubusercontent.com/media/polymorphicteam/proto-sns-game/main/public/scene/assets/"
+    : "scene/assets/";
+
   const modelRoot = `${assetBase}model/`;
   const textureRoot = `${assetBase}road/`;
 

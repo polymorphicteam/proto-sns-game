@@ -1,9 +1,9 @@
 import { ObstacleType } from "./obstacleSystem";
+import { getAssetRoots } from "../assetPaths";
 
 export type ObstacleModelMap = Record<ObstacleType, string[]>;
 
 // Static list of obstacle GLB files
-// These paths match the files copied by CopyWebpackPlugin from public/scene to dist/scene
 const OBSTACLE_MODELS: Record<ObstacleType, string[]> = {
     jump: ["Burger.glb"],
     duck: ["pipe.glb"],
@@ -13,7 +13,8 @@ const OBSTACLE_MODELS: Record<ObstacleType, string[]> = {
 };
 
 export function scanObstacleFolders(): ObstacleModelMap {
-    const baseUrl = "scene/assets/model/obstacles/";
+    const { modelRoot } = getAssetRoots();
+    const baseUrl = `${modelRoot}obstacles/`;
 
     const modelMap: ObstacleModelMap = {
         jump: [],
