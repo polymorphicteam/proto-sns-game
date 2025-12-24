@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "git lfs install && git lfs pull && npm run build",
   "outputDirectory": "dist",
   "headers": [
     {
