@@ -4,7 +4,7 @@
   "outputDirectory": "dist",
   "headers": [
     {
-      "source": "**/*.glb",
+      "source": "/(.*)\\.glb",
       "headers": [
         {
           "key": "Content-Type",
