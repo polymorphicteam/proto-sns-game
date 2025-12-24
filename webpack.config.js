@@ -26,6 +26,14 @@ module.exports = {
       {
         test: /\.glb$/,
         type: 'asset/resource',
+        generator: {
+          // Output GLB files to scene/assets/model/obstacles preserving folder structure
+          filename: (pathData) => {
+            // Get the path relative to public folder
+            const relativePath = pathData.filename.replace(/^.*public[/\\]/, '');
+            return relativePath;
+          }
+        }
       },
     ],
   },
