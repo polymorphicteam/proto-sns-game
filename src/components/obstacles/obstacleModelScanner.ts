@@ -2,7 +2,19 @@ import { ObstacleType } from "./obstacleSystem";
 
 export type ObstacleModelMap = Record<ObstacleType, string[]>;
 
+// Static list of obstacle GLB files
+// These paths match the files copied by CopyWebpackPlugin from public/scene to dist/scene
+const OBSTACLE_MODELS: Record<ObstacleType, string[]> = {
+    jump: ["Burger.glb"],
+    duck: ["pipe.glb"],
+    platform: ["BurgerBox1.glb", "Container1.glb", "container2.glb"],
+    insuperable: ["Fries.glb", "Soda1.glb", "WarningSign1.glb"],
+    hamburger: [],
+};
+
 export function scanObstacleFolders(): ObstacleModelMap {
+    const baseUrl = "scene/assets/model/obstacles/";
+
     const modelMap: ObstacleModelMap = {
         jump: [],
         duck: [],
@@ -11,47 +23,14 @@ export function scanObstacleFolders(): ObstacleModelMap {
         hamburger: [],
     };
 
-    try {
-        // Scan the obstacles directory recursively
-        // The context is relative to THIS file
-        // We want to scan ../../../public/scene/assets/model/obstacles
-        // But require.context arguments must be literals.
-        // Webpack will replace this at build time.
-        // We assume the structure: public/scene/assets/model/obstacles/<type>/<file>.glb
-
-        // Note: require.context behavior depends on the build tool (Webpack).
-        // We use a broad scan and filter by path.
-        const context = (require as any).context(
-            "../../../public/scene/assets/model/obstacles",
-            true,
-            /\.glb$/
-        );
-
-        context.keys().forEach((key: string) => {
-            // key is like "./jump/myModel.glb" or "./duck/subfolder/model.glb"
-
-            // Extract type from folder name
-            // Remove leading "./"
-            const cleanKey = key.replace(/^\.\//, "");
-            const parts = cleanKey.split("/");
-
-            if (parts.length >= 2) {
-                const type = parts[0] as ObstacleType;
-
-                // Check if it's a valid obstacle type
-                if (type in modelMap) {
-                    // Resolve the full URL (Webpack handles this via asset/resource)
-                    const modelUrl = context(key);
-                    modelMap[type].push(modelUrl);
-                }
-            }
-        });
-
-        console.log("Obstacle Model Scan Results:", modelMap);
-
-    } catch (e) {
-        console.warn("Failed to scan obstacle folders (require.context might not be available):", e);
+    // Build full URLs from static model list
+    for (const type of Object.keys(OBSTACLE_MODELS) as ObstacleType[]) {
+        const files = OBSTACLE_MODELS[type];
+        for (const file of files) {
+            modelMap[type].push(`${baseUrl}${type}/${file}`);
+        }
     }
 
+    console.log("Obstacle Model Map:", modelMap);
     return modelMap;
 }
