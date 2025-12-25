@@ -5,6 +5,7 @@ import { createWorldSegments, WorldSegments } from "./worldSegments";
 import { createWorldScroll, WorldScrollController } from "./worldScroll";
 import { createObstacleSystem, ObstacleController } from "../obstacles/obstacleSystem";
 import { createCoinSystem, CoinController } from "./coinSystem";
+import { createRoadsideCars, RoadsideCarsController } from "./roadsideCars";
 
 export interface EnvironmentController {
   obstacleController: ObstacleController;
@@ -32,6 +33,14 @@ export function setupEnvironment(
     textureRoot
   );
 
+  // DEBUG: 10x10x10 scale reference cube
+  const scaleCube = BABYLON.MeshBuilder.CreateBox("scaleRef", { size: 10 }, scene);
+  scaleCube.position.set(10, 5, -50); // Center at Y=5 so bottom is at Y=0
+  const cubeMat = new BABYLON.StandardMaterial("scaleRefMat", scene);
+  cubeMat.diffuseColor = new BABYLON.Color3(1, 1, 1);
+  cubeMat.wireframe = true;
+  scaleCube.material = cubeMat;
+
   // ------------------------------------------------------
   // 2) CREATE SCROLL SYSTEM (movement + texture offset)
   // ------------------------------------------------------
@@ -45,6 +54,15 @@ export function setupEnvironment(
   // 3) COIN SYSTEM
   // ------------------------------------------------------
   const coinController: CoinController = createCoinSystem(
+    scene,
+    shadowGenerator,
+    getScrollSpeed
+  );
+
+  // ------------------------------------------------------
+  // 4) ROADSIDE CARS (decorative parked cars)
+  // ------------------------------------------------------
+  const roadsideCarsController: RoadsideCarsController = createRoadsideCars(
     scene,
     shadowGenerator,
     getScrollSpeed
@@ -71,6 +89,7 @@ export function setupEnvironment(
   function dispose() {
     obstacleController.dispose();
     coinController.dispose();
+    roadsideCarsController.dispose();
     scrollController.dispose();
     world.dispose();
   }

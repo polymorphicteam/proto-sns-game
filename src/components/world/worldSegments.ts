@@ -31,7 +31,7 @@ export function createWorldSegments(
 ): WorldSegments {
   // CONFIG
   const targetSegmentCount = 6;
-  const groundWidth = 250;
+  const groundWidth = 350;   // Widened to add sidewalk space for parked cars
   const groundLength = 160;
   const environmentScale = 8;
 
