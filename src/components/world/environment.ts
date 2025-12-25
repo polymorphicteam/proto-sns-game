@@ -33,14 +33,6 @@ export function setupEnvironment(
     textureRoot
   );
 
-  // DEBUG: 10x10x10 scale reference cube
-  const scaleCube = BABYLON.MeshBuilder.CreateBox("scaleRef", { size: 10 }, scene);
-  scaleCube.position.set(10, 5, -50); // Center at Y=5 so bottom is at Y=0
-  const cubeMat = new BABYLON.StandardMaterial("scaleRefMat", scene);
-  cubeMat.diffuseColor = new BABYLON.Color3(1, 1, 1);
-  cubeMat.wireframe = true;
-  scaleCube.material = cubeMat;
-
   // ------------------------------------------------------
   // 2) CREATE SCROLL SYSTEM (movement + texture offset)
   // ------------------------------------------------------
