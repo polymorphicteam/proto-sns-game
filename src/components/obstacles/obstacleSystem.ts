@@ -308,6 +308,25 @@ export function createObstacleSystem(
 
     for (const obs of activeObstacles) {
       obs.mesh.position.z += movement;
+
+      // Slowly rotate only Soda1.glb around LOCAL Y-axis
+      if (obs.type === "insuperable") {
+        // Check if this is a Soda mesh by checking the source URL in metadata
+        const sourceUrl = obs.mesh.metadata?.sourceUrl || "";
+        const isSoda = sourceUrl.toLowerCase().includes("soda");
+
+        // Debug log (remove after testing)
+        if (!obs.mesh.metadata?._debugLogged) {
+          console.log(`[DEBUG] Insuperable mesh: ${obs.mesh.name}, sourceUrl: ${sourceUrl}, isSoda: ${isSoda}`);
+          obs.mesh.metadata = obs.mesh.metadata || {};
+          obs.mesh.metadata._debugLogged = true;
+        }
+
+        if (isSoda) {
+          const rotationSpeed = dt * 1.5; // Rotation speed
+          obs.mesh.rotate(BABYLON.Axis.Y, rotationSpeed, BABYLON.Space.LOCAL);
+        }
+      }
     }
 
     for (let i = activeObstacles.length - 1; i >= 0; i--) {

@@ -69,15 +69,16 @@ export const PATTERN_NIGHTMARE: ObstaclePattern = [
         ],
         delayNext: 1.8 // Increased from 0.6
     },
-    {
-        obstacles: [
-            { type: "insuperable", laneIndex: -1 },
-            { type: "platform", laneIndex: 0 },
-            { type: "insuperable", laneIndex: 1 }
-        ],
-        coins: [{ laneIndex: 0, yOffset: 15, count: 3, spacing: 6 }], // Row on platform
-        delayNext: 2.2 // Increased from 1.0
-    },
+    // Platform disabled
+    // {
+    //     obstacles: [
+    //         { type: "insuperable", laneIndex: -1 },
+    //         { type: "platform", laneIndex: 0 },
+    //         { type: "insuperable", laneIndex: 1 }
+    //     ],
+    //     coins: [{ laneIndex: 0, yOffset: 15, count: 3, spacing: 6 }],
+    //     delayNext: 2.2
+    // },
 
     // --- PHASE 3: ZIG-ZAG (Balanced) ---
     { obstacles: [{ type: "insuperable", laneIndex: -1 }], delayNext: 0.9 }, // Increased from 0.4
@@ -97,22 +98,21 @@ export const PATTERN_NIGHTMARE: ObstaclePattern = [
         delayNext: 2.5
     },
 
-    // --- PHASE 5: PLATFORM HELL (Balanced) ---
-    {
-        obstacles: [{ type: "platform", laneIndex: -1 }],
-        coins: [{ laneIndex: 0, count: 5, spacing: 10 }], // Coins in center lane (safe)
-        delayNext: 2.2
-    },
-    {
-        obstacles: [{ type: "platform", laneIndex: 0 }],
-        // No coins here, just survive
-        delayNext: 2.2
-    },
-    {
-        obstacles: [{ type: "platform", laneIndex: 1 }],
-        coins: [{ laneIndex: 1, yOffset: 15, count: 2, spacing: 8 }], // Short row on platform
-        delayNext: 2.2
-    },
+    // --- PHASE 5: PLATFORM HELL (Disabled) ---
+    // {
+    //     obstacles: [{ type: "platform", laneIndex: -1 }],
+    //     coins: [{ laneIndex: 0, count: 5, spacing: 10 }],
+    //     delayNext: 2.2
+    // },
+    // {
+    //     obstacles: [{ type: "platform", laneIndex: 0 }],
+    //     delayNext: 2.2
+    // },
+    // {
+    //     obstacles: [{ type: "platform", laneIndex: 1 }],
+    //     coins: [{ laneIndex: 1, yOffset: 15, count: 2, spacing: 8 }],
+    //     delayNext: 2.2
+    // },
     { obstacles: [{ type: "jump", laneIndex: 1 }], delayNext: 1.5 },
 ];
 
@@ -126,33 +126,34 @@ export const PATTERN_CITY: ObstaclePattern = [
     { obstacles: [{ type: "duck", laneIndex: 1 }], delayNext: 2.2 },
     { obstacles: [{ type: "duck", laneIndex: -1 }], delayNext: 2.2 },
 
-    {
-        obstacles: [{ type: "platform", laneIndex: 0 }],
-        coins: [{ laneIndex: 0, yOffset: 15, count: 5, spacing: 8 }],
-        delayNext: 3.0
-    },
-    {
-        obstacles: [{ type: "platform", laneIndex: -1 }, { type: "platform", laneIndex: 1 }],
-        coins: [{ laneIndex: 0, count: 5, spacing: 8 }], // Coins in middle
-        delayNext: 3.0
-    }
+    // Platform disabled
+    // {
+    //     obstacles: [{ type: "platform", laneIndex: 0 }],
+    //     coins: [{ laneIndex: 0, yOffset: 15, count: 5, spacing: 8 }],
+    //     delayNext: 3.0
+    // },
+    // {
+    //     obstacles: [{ type: "platform", laneIndex: -1 }, { type: "platform", laneIndex: 1 }],
+    //     coins: [{ laneIndex: 0, count: 5, spacing: 8 }],
+    //     delayNext: 3.0
+    // }
 ];
 
-// FOOD PATTERN (Features hamburgers!)
+// FOOD PATTERN (Uses Burger.glb from jump folder)
 export const PATTERN_FOOD: ObstaclePattern = [
-    // Hamburger intro
+    // Burger intro - uses jump type to load Burger.glb
     {
-        obstacles: [{ type: "hamburger", laneIndex: 0 }],
+        obstacles: [{ type: "jump", laneIndex: 0 }],
         coins: [{ laneIndex: -1, count: 3, spacing: 8 }, { laneIndex: 1, count: 3, spacing: 8 }],
         delayNext: 2.2
     },
     {
-        obstacles: [{ type: "hamburger", laneIndex: -1 }],
+        obstacles: [{ type: "jump", laneIndex: -1 }],
         coins: [{ laneIndex: 0, count: 3, spacing: 8 }],
         delayNext: 2.2
     },
     {
-        obstacles: [{ type: "hamburger", laneIndex: 1 }],
+        obstacles: [{ type: "jump", laneIndex: 1 }],
         coins: [{ laneIndex: -1, count: 3, spacing: 8 }],
         delayNext: 2.2
     },
@@ -160,29 +161,28 @@ export const PATTERN_FOOD: ObstaclePattern = [
     // Mixed obstacles
     { obstacles: [{ type: "duck", laneIndex: 0 }], delayNext: 2.0 },
     {
-        obstacles: [{ type: "hamburger", laneIndex: -1 }, { type: "hamburger", laneIndex: 1 }],
+        obstacles: [{ type: "jump", laneIndex: -1 }, { type: "jump", laneIndex: 1 }],
         coins: [{ laneIndex: 0, count: 5, spacing: 8 }],
         delayNext: 2.2
     },
 
-    // Jump over hamburgers
+    // Jump over burgers
     {
-        obstacles: [{ type: "hamburger", laneIndex: 0 }],
+        obstacles: [{ type: "jump", laneIndex: 0 }],
         delayNext: 1.8
     },
     {
-        obstacles: [{ type: "hamburger", laneIndex: 0 }],
+        obstacles: [{ type: "jump", laneIndex: 0 }],
         delayNext: 1.8
     },
 
-    // Platform with hamburgers on sides
+    // Burgers on sides
     {
         obstacles: [
-            { type: "hamburger", laneIndex: -1 },
-            { type: "platform", laneIndex: 0 },
-            { type: "hamburger", laneIndex: 1 }
+            { type: "jump", laneIndex: -1 },
+            { type: "jump", laneIndex: 1 }
         ],
-        coins: [{ laneIndex: 0, yOffset: 15, count: 4, spacing: 8 }],
+        coins: [{ laneIndex: 0, count: 4, spacing: 8 }],
         delayNext: 3.0
     },
 ];

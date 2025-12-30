@@ -4,7 +4,8 @@ import { ObstacleModelMap } from "./obstacleModelScanner";
 import { applyUnifiedMaterialsToHierarchy } from "../materials/MaterialFactory";
 
 export class ObstacleGLBBuilder {
-    private static cache: Record<ObstacleType, AssetContainer[]> = {
+    // Store containers with their source URLs
+    private static cache: Record<ObstacleType, { container: AssetContainer, sourceUrl: string }[]> = {
         jump: [],
         duck: [],
         platform: [],
@@ -28,9 +29,8 @@ export class ObstacleGLBBuilder {
                 // We use LoadAssetContainerAsync to keep it isolated and cloneable
                 const p = SceneLoader.LoadAssetContainerAsync("", url, scene, null, ".glb")
                     .then((container) => {
-                        // Process meshes in the container if needed (e.g. merge, setup)
-                        // But usually we just cache the container
-                        this.cache[type].push(container);
+                        // Store container with its source URL for identification
+                        this.cache[type].push({ container, sourceUrl: url });
                     })
                     .catch((err) => {
                         console.error(`Failed to load obstacle GLB [${type}]: ${url}`, err);
@@ -63,7 +63,7 @@ export class ObstacleGLBBuilder {
             typeof variantIndex === "number" && variantIndex >= 0 && variantIndex <= maxIndex
                 ? variantIndex
                 : Math.floor(Math.random() * containers.length);
-        const container = containers[safeIndex];
+        const { container, sourceUrl } = containers[safeIndex];
 
         // Instantiate models from the container
         const entries = container.instantiateModelsToScene((name) => name, false, { doNotInstantiate: false });
@@ -81,6 +81,10 @@ export class ObstacleGLBBuilder {
         // Ensure the root is an AbstractMesh
         const mesh = root as AbstractMesh;
 
+        // Store source URL in metadata for identification
+        mesh.metadata = mesh.metadata || {};
+        mesh.metadata.sourceUrl = sourceUrl;
+
         // Fix rotation/scaling if needed? 
         // Usually GLBs come in with Z-forward, Y-up.
         // Our game assumes Z-forward.
@@ -97,6 +101,11 @@ export class ObstacleGLBBuilder {
         // Duck obstacles (pipe) need to be larger so players can slide through
         if (type === "duck") {
             mesh.scaling.setAll(1.5);
+        }
+
+        // Rotate insuperable obstacles (Soda) on Z-axis so logo is visible
+        if (type === "insuperable") {
+            mesh.rotation.z = 0; // 90 degrees on Z-axis
         }
 
         // Apply unified materials to the GLB mesh hierarchy

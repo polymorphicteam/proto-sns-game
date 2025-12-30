@@ -191,16 +191,23 @@ export function applyUnifiedMaterialToGLBMesh(
 
     if (!mat) return;
 
-    // If already PBRMaterial, preserve all textures - only adjust metallic/roughness if no maps exist
+    // If already PBRMaterial, preserve ALL original textures and properties from GLB
     if (mat instanceof BABYLON.PBRMaterial) {
-        // Only override metallic/roughness if no texture maps are defined
-        if (!mat.metallicTexture) {
+        // Only override metallic/roughness if NO texture maps are defined
+        // GLB uses metallicRoughnessTexture for combined metallic/roughness
+        const hasMetallicRoughnessMap = mat.metallicTexture || mat.microSurfaceTexture;
+        const hasNormalMap = mat.bumpTexture;
+        const hasReflectanceMap = mat.reflectivityTexture || mat.reflectionTexture;
+
+        // Log what textures we found (for debugging)
+        // console.log(`[MaterialFactory] ${mesh.name}: metallicRoughness=${!!hasMetallicRoughnessMap}, normal=${!!hasNormalMap}, reflectance=${!!hasReflectanceMap}`);
+
+        // Only apply defaults if the GLB has no textures at all
+        if (!hasMetallicRoughnessMap) {
             mat.metallic = MATERIAL_CONFIGS.obstacleGLB.metallic;
-        }
-        if (!mat.metallicTexture && !mat.microSurfaceTexture) {
             mat.roughness = MATERIAL_CONFIGS.obstacleGLB.roughness;
         }
-        // Keep all other textures as-is (albedo, normal, emissive, etc.)
+        // Keep ALL other textures as-is (albedo, normal, emissive, metallic-roughness, reflectance, etc.)
         return;
     }
 

@@ -37,10 +37,10 @@ export function createRoadsideCars(
     let isReady = false;
     let nextSpawnZ = SPAWN_Z;
 
-    // Load both car models
-    const carFiles = ["red_car.glb", "green_car.glb"];
+    // Load all car models from roadside folder
+    const carFiles = ["red_car.glb", "green_car.glb", "flame_car.glb", "white_car.glb"];
     const loadPromises = carFiles.map(file => {
-        const url = `scene/assets/model/obstacles/jump/${file}`;
+        const url = `scene/assets/model/roadside/${file}`;
         return BABYLON.SceneLoader.LoadAssetContainerAsync("", url, scene, null, ".glb")
             .then(container => {
                 carContainers.push(container);
