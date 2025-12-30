@@ -200,7 +200,7 @@ export function applyUnifiedMaterialToGLBMesh(
         const hasReflectanceMap = mat.reflectivityTexture || mat.reflectionTexture;
 
         // Log what textures we found (for debugging)
-        // console.log(`[MaterialFactory] ${mesh.name}: metallicRoughness=${!!hasMetallicRoughnessMap}, normal=${!!hasNormalMap}, reflectance=${!!hasReflectanceMap}`);
+        console.log(`[MaterialFactory] ${mesh.name}: metallicRoughness=${!!hasMetallicRoughnessMap}, normal=${!!hasNormalMap}, reflectance=${!!hasReflectanceMap}`);
 
         // Only apply defaults if the GLB has no textures at all
         if (!hasMetallicRoughnessMap) {

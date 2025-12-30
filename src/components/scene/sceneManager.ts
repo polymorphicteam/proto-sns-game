@@ -12,6 +12,14 @@ export function createScene(canvas: HTMLCanvasElement) {
 
     const scene = new BABYLON.Scene(engine);
 
+    // Create environment texture for PBR reflections
+    // This enables reflections on metallic/shiny surfaces
+    scene.environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
+        "https://assets.babylonjs.com/environments/environmentSpecular.env",
+        scene
+    );
+    scene.environmentIntensity = 0.4; // Subtle reflections
+
     return {
         engine,
         scene,
