@@ -49,7 +49,7 @@ module.exports = {
   performance: {
     maxAssetSize: 5000000, // 5MB per asset (for GLB files)
     maxEntrypointSize: 3000000, // 3MB for entry point
-    hints: 'warning',
+    hints: false,
   },
   module: {
     rules: [
