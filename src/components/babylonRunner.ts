@@ -303,12 +303,32 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   // --------------------------------------------
   // CAMERA PANNING UPDATE LOOP
   // --------------------------------------------
+  let cameraLocked = false;
+
   scene.onBeforeRenderObservable.add(() => {
-    // Disable camera panning during gameplay to avoid conflict with Player controls
+    // FULL CAMERA LOCK during gameplay
     const gameState = useGameStore.getState().gameState;
+
+    if (gameState === "playing") {
+      // Lock camera - detach all controls
+      if (!cameraLocked) {
+        camera.detachControl();
+        cameraLocked = true;
+        console.log("🔒 Camera Locked (Playing)");
+      }
+      return;
+    } else {
+      // Unlock camera - reattach controls
+      if (cameraLocked) {
+        camera.attachControl(canvas, true);
+        cameraLocked = false;
+        console.log("🔓 Camera Unlocked (Not Playing)");
+      }
+    }
+
     // User requested panning ONLY in Pause/Idle. 
-    // So block if playing OR gameover.
-    if (gameState === "playing" || gameState === "gameover") return;
+    // So block if gameover.
+    if (gameState === "gameover") return;
 
     const panSpeed = 2.5;
 

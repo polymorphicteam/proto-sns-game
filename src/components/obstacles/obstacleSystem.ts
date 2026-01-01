@@ -272,15 +272,20 @@ export function createObstacleSystem(
     for (const def of step.obstacles) {
       const obs = acquire(def.type);
       const xPos = def.laneIndex * laneWidth;
-      obs.mesh.position.set(xPos, obs.mesh.position.y, spawnZ);
+
+      // Check if this is a CAR under PLATFORM type
+      const source = obs.mesh.metadata?.sourceUrl || "";
+      const isCar = source.toLowerCase().includes("car");
+      const isPlatformCar = isCar && obs.type === "platform";
+
+      // Lower ONLY platform cars by 3 units (User Request)
+      const yOffset = isPlatformCar ? -3 : 0;
+      obs.mesh.position.set(xPos, obs.mesh.position.y + yOffset, spawnZ);
 
       // Rotate CARS based on lane (Traffic Flow)
       // Left (-1) = With Traffic (Face +Z / Rot 0)
       // Right (1) = Oncoming (Face -Z / Rot PI)
       // Center (0) = Oncoming (Face -Z / Rot PI)
-      const source = obs.mesh.metadata?.sourceUrl || "";
-      const isCar = source.toLowerCase().includes("car");
-
       if (isCar && (obs.type === "insuperable" || obs.type === "platform")) {
         const isRightSide = def.laneIndex >= 0;
         obs.mesh.rotation.y = isRightSide ? Math.PI : 0;

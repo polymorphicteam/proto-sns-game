@@ -94,6 +94,28 @@ export const GameOverlay: React.FC = () => {
                     <div className="gameover-subtext">Press R to restart</div>
                 </div>
             )}
+
+            {/* Reset Button - Lower Right Corner */}
+            <button
+                className="reset-button"
+                onClick={() => useGameStore.getState().resetGame?.()}
+                style={{
+                    position: 'fixed',
+                    bottom: '20px',
+                    right: '20px',
+                    padding: '10px 20px',
+                    fontSize: '16px',
+                    backgroundColor: 'rgba(255, 50, 50, 0.8)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    pointerEvents: 'auto',
+                    zIndex: 1000,
+                }}
+            >
+                🔄 Reset
+            </button>
         </div>
     );
 };
