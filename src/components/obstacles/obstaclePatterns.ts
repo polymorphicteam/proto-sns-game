@@ -69,16 +69,16 @@ export const PATTERN_NIGHTMARE: ObstaclePattern = [
         ],
         delayNext: 1.8 // Increased from 0.6
     },
-    // Platform disabled
-    // {
-    //     obstacles: [
-    //         { type: "insuperable", laneIndex: -1 },
-    //         { type: "platform", laneIndex: 0 },
-    //         { type: "insuperable", laneIndex: 1 }
-    //     ],
-    //     coins: [{ laneIndex: 0, yOffset: 15, count: 3, spacing: 6 }],
-    //     delayNext: 2.2
-    // },
+    // Platform enabled
+    {
+        obstacles: [
+            { type: "insuperable", laneIndex: -1 },
+            { type: "platform", laneIndex: 0 },
+            { type: "insuperable", laneIndex: 1 }
+        ],
+        coins: [{ laneIndex: 0, yOffset: 15, count: 3, spacing: 6 }],
+        delayNext: 2.2
+    },
 
     // --- PHASE 3: ZIG-ZAG (Balanced) ---
     { obstacles: [{ type: "insuperable", laneIndex: -1 }], delayNext: 0.9 }, // Increased from 0.4
@@ -126,17 +126,17 @@ export const PATTERN_CITY: ObstaclePattern = [
     { obstacles: [{ type: "duck", laneIndex: 1 }], delayNext: 2.2 },
     { obstacles: [{ type: "duck", laneIndex: -1 }], delayNext: 2.2 },
 
-    // Platform disabled
-    // {
-    //     obstacles: [{ type: "platform", laneIndex: 0 }],
-    //     coins: [{ laneIndex: 0, yOffset: 15, count: 5, spacing: 8 }],
-    //     delayNext: 3.0
-    // },
-    // {
-    //     obstacles: [{ type: "platform", laneIndex: -1 }, { type: "platform", laneIndex: 1 }],
-    //     coins: [{ laneIndex: 0, count: 5, spacing: 8 }],
-    //     delayNext: 3.0
-    // }
+    // Platform enabled
+    {
+        obstacles: [{ type: "platform", laneIndex: 0 }],
+        coins: [{ laneIndex: 0, yOffset: 15, count: 5, spacing: 8 }],
+        delayNext: 3.0
+    },
+    {
+        obstacles: [{ type: "platform", laneIndex: -1 }, { type: "platform", laneIndex: 1 }],
+        coins: [{ laneIndex: 0, count: 5, spacing: 8 }],
+        delayNext: 3.0
+    }
 ];
 
 // FOOD PATTERN (Uses Burger.glb from jump folder)

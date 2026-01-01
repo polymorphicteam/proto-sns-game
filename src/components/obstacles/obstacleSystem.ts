@@ -29,6 +29,7 @@ export interface ObstacleController {
   dispose(): void;
   reset(): void;
   isReady(): boolean;
+  hasObstacleAt(x: number, z: number, radius: number): boolean;
 }
 
 export interface ObstacleInstance {
@@ -122,7 +123,8 @@ export function createObstacleSystem(
 ): ObstacleController {
   const laneWidth = options.laneWidth ?? 25;
   const laneCount = options.laneCount ?? 3;
-  const spawnZ = options.spawnZ ?? -1500;
+  // SPAWN SOONER (User Request)
+  const spawnZ = options.spawnZ ?? -400; // Was -800, now -400 to appear even faster
   const despawnZ = options.despawnZ ?? 200;
   const minSpawnDelay = options.minSpawnDelay ?? 2.0;
   const maxSpawnDelay = options.maxSpawnDelay ?? 4.0;
@@ -250,10 +252,10 @@ export function createObstacleSystem(
     return created;
   }
 
-  let spawnTimer = 0;
+  let spawnTimer = 1.0; // Start at delay so first spawn is IMMEDIATE
   let currentPattern: ObstaclePattern = ALL_PATTERNS[0];
   let currentPatternIndex = 0;
-  let nextSpawnDelay = 2.0; // Initial delay
+  let nextSpawnDelay = 1.0; // Initial delay reduced from 2.0
 
   function spawnFromPattern() {
     // Check if we need to switch pattern
@@ -271,6 +273,22 @@ export function createObstacleSystem(
       const obs = acquire(def.type);
       const xPos = def.laneIndex * laneWidth;
       obs.mesh.position.set(xPos, obs.mesh.position.y, spawnZ);
+
+      // Rotate CARS based on lane (Traffic Flow)
+      // Left (-1) = With Traffic (Face +Z / Rot 0)
+      // Right (1) = Oncoming (Face -Z / Rot PI)
+      // Center (0) = Oncoming (Face -Z / Rot PI)
+      const source = obs.mesh.metadata?.sourceUrl || "";
+      const isCar = source.toLowerCase().includes("car");
+
+      if (isCar && (obs.type === "insuperable" || obs.type === "platform")) {
+        const isRightSide = def.laneIndex >= 0;
+        obs.mesh.rotation.y = isRightSide ? Math.PI : 0;
+      } else {
+        // Reset rotation for non-cars (e.g. reused mesh from pool)
+        obs.mesh.rotation.y = 0;
+      }
+
       activeObstacles.push(obs);
     }
 
@@ -287,7 +305,12 @@ export function createObstacleSystem(
     }
 
     // Setup next spawn
-    nextSpawnDelay = step.delayNext;
+    // DIFFICULTY SCALING: Decrease delay over time
+    // Delay decreases by 10% every 30 seconds
+    const timeSinceStart = performance.now() / 1000;
+    const speedMultiplier = Math.max(0.4, 1.0 - (timeSinceStart / 300)); // Cap at 40% (2.5x speed)
+
+    nextSpawnDelay = step.delayNext * speedMultiplier;
     currentPatternIndex++;
   }
 
@@ -390,5 +413,27 @@ export function createObstacleSystem(
     return glbsReady;
   }
 
-  return { dispose, getActiveObstacles, getActivePlatformMeshes, reset, isReady };
+  // Check if there is an active obstacle at world position (x, z) within tolerance
+  function hasObstacleAt(x: number, z: number, radius: number): boolean {
+    // Only check active obstacles
+    for (const obs of activeObstacles) {
+      if (!obs.active) continue;
+
+      const obsX = obs.mesh.position.x;
+      const obsZ = obs.mesh.position.z;
+
+      // Simple circular overlap check
+      const dx = x - obsX;
+      const dz = z - obsZ;
+      const distSq = dx * dx + dz * dz;
+
+      // Use squared distance for perf
+      if (distSq < radius * radius) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  return { dispose, getActiveObstacles, getActivePlatformMeshes, reset, isReady, hasObstacleAt };
 }

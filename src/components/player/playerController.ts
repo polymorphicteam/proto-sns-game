@@ -8,6 +8,7 @@ import {
 } from "./playerStateMachine";
 import { ObstacleController, ObstacleInstance } from "../obstacles/obstacleSystem";
 import { CoinController } from "../world/coinSystem";
+import { FallingCubeRoadController } from "../world/fallingCubeRoad";
 import { useGameStore } from "../../store/gameStore";
 import { createImpactVFX } from "./impactVFX";
 export type PlayerAABB = { min: BABYLON.Vector3; max: BABYLON.Vector3 };
@@ -24,6 +25,7 @@ export interface PlayerController {
   ensureIdle(): void;
   dispose(): void;
   reset(): void;
+  cameraTarget?: BABYLON.TransformNode; // Exposed for manual panning
 }
 
 // --------------------------------------------------
@@ -53,6 +55,7 @@ export function setupPlayerController(
   setScrollSpeed: (speed: number) => void,
   obstacleController: ObstacleController,
   coinController: CoinController,
+  fallingCubeRoadController?: FallingCubeRoadController,
   onReady?: () => void
 ): PlayerController {
   // ------------------------------------------
@@ -115,6 +118,7 @@ export function setupPlayerController(
   // Invulnerability duration must cover Fall (3.1s) + Getup (9.5s) animations + safety margin
   const INVULNERABILITY_AFTER_HIT = 4.0;
   let invulnerabilityTimer = 0;
+  let isFallingInGap = false; // Flag for physical falling
 
   // ------------------------------------------
   // BOUNCE-BACK EFFECT (on collision)
@@ -141,10 +145,22 @@ export function setupPlayerController(
     jumpMotion.velocity = jumpMotion.jumpStrength;
   }
 
+  // ------------------------------------------
+  // CAMERA OFFSET STATE
+  // ------------------------------------------
+  let savedYOffset: number | null = null;
+
   function updateJumpMotion(dt: number) {
     if (!playerRoot) return;
 
     if (!jumpMotion.active) {
+      // If falling in a gap, allow gravity to continue pulling down
+      if (isFallingInGap) {
+        jumpMotion.velocity += jumpMotion.gravity * dt;
+        playerRoot.position.y += jumpMotion.velocity * dt;
+        return;
+      }
+
       if (playerRoot.position.y !== baseY) playerRoot.position.y = baseY;
       return;
     }
@@ -428,8 +444,10 @@ export function setupPlayerController(
     const current = stateMachine.currentState;
     if (current === "Fall" || current === "Getup" || current === "Death") return;
 
-    // Trigger bounce-back effect with VFX
-    triggerBounceBack(hitObstacle);
+    // Trigger bounce-back effect with VFX ONLY if obstacle hit
+    if (hitObstacle) {
+      triggerBounceBack(hitObstacle);
+    }
     // Update game store - decrement lives
     const store = useGameStore.getState();
     store.decrementLives();
@@ -452,6 +470,26 @@ export function setupPlayerController(
     jumpMotion.velocity = 0;
     invulnerabilityTimer = INVULNERABILITY_AFTER_HIT;
     stateMachine.setPlayerState("Fall", true);
+
+    // ------------------------------------------
+    // SAVED OFFSET FOR CAMERA (Prevent overhead snap)
+    // ------------------------------------------
+    let savedYOffset: number | null = null;
+
+    if (!hitObstacle) {
+      // It's a gap! Enable physical falling
+      isFallingInGap = true;
+      // Also trigger a jump motion so gravity logic picks it up
+      jumpMotion.velocity = -50;
+      console.log("🕳️ Falling into gap!");
+
+      // Save the current vertical offset between target and player
+      // logic: TargetY = PlayerY + Offset  =>  Offset = TargetY - PlayerY
+      if (cameraTarget && playerRoot) {
+        savedYOffset = cameraTarget.position.y - playerRoot.position.y;
+        console.log(`💾 Saved Camera Y Offset: ${savedYOffset}`);
+      }
+    }
   }
 
   function checkObstacleCollision(): ObstacleInstance | null {
@@ -501,6 +539,11 @@ export function setupPlayerController(
   }
 
   // ------------------------------------------
+  // CAMERA TARGET
+  // ------------------------------------------
+  const cameraTarget = new BABYLON.TransformNode("camTarget", scene);
+
+  // ------------------------------------------
   // LOAD PLAYER MODEL
   // ------------------------------------------
   loadPlayerModel(
@@ -512,6 +555,15 @@ export function setupPlayerController(
       playerRoot = info.playerRoot;
       baseY = playerRoot.position.y;
       groundBaseY = baseY;
+
+      // Override camera target to our controlled node
+      camera.lockedTarget = cameraTarget;
+
+      // Sync initial position (with framing offset)
+      cameraTarget.position.copyFrom(playerRoot.position);
+      // User request: "Move the camera position down" -> Move TARGET DOWN to shift view UP.
+      // -15 units provides more space below to see falling cubes.
+      cameraTarget.position.y -= 15;
 
       const { min: worldMin, max: worldMax } =
         info.playerRoot.getHierarchyBoundingVectors();
@@ -767,6 +819,63 @@ export function setupPlayerController(
     updatePlatformRaycast();
     updateJumpMotion(dt);
 
+    // RECOVERY CHECK: If we were falling in a gap and transitioned to Getup, RESET position
+    if (isFallingInGap) {
+      if (stateMachine.currentState === "Getup" || stateMachine.currentState === "Run" || stateMachine.currentState === "Idle") {
+        isFallingInGap = false;
+        playerRoot.position.y = baseY;
+        jumpMotion.velocity = 0;
+
+        // SAFE RESPAWN: Ensure there is a cube underneath
+        if (fallingCubeRoadController) {
+          fallingCubeRoadController.fillGapAt(playerRoot.position.x, playerRoot.position.z);
+        }
+
+        // RESTORE CAMERA OFFSET (Fix Snap on Respawn)
+        if (cameraTarget && savedYOffset !== null) {
+          cameraTarget.position.y = playerRoot.position.y + savedYOffset;
+          console.log(`🔄 Respawn: Restored Camera Y Offset: ${savedYOffset}`);
+          savedYOffset = null;
+        }
+
+        // FORCE METADATA UPDATE so next frame delta is not huge (prevent snap)
+        playerRoot.metadata = {
+          ...(playerRoot.metadata || {}),
+          lastX: playerRoot.position.x,
+          lastY: playerRoot.position.y,
+          lastZ: playerRoot.position.z
+        };
+
+        console.log("✨ Recovered from gap fall & repaired road");
+      }
+    }
+
+    // UPDATE CAMERA TARGET
+    // Use DELTA tracking to allow manual panning to persist
+    if (cameraTarget) {
+      const deltaX = playerRoot.position.x - (playerRoot.metadata?.lastX ?? playerRoot.position.x);
+      const deltaZ = playerRoot.position.z - (playerRoot.metadata?.lastZ ?? playerRoot.position.z);
+      let deltaY = 0;
+
+      if (!isFallingInGap) {
+        // Only follow Y if NOT falling in gap
+        deltaY = playerRoot.position.y - (playerRoot.metadata?.lastY ?? playerRoot.position.y);
+        cameraTarget.position.y += deltaY;
+      }
+      // If falling, we intentionally ignore deltaY to "detach" camera from falling player.
+
+      // Re-enabled lateral tracking (User preference)
+      cameraTarget.position.x += deltaX;
+      cameraTarget.position.z += deltaZ;
+
+      playerRoot.metadata = {
+        ...(playerRoot.metadata || {}),
+        lastX: playerRoot.position.x,
+        lastY: playerRoot.position.y,
+        lastZ: playerRoot.position.z
+      };
+    }
+
     if (!debugOverrideState) {
       if (
         stateMachine.currentState !== "Fall" &&
@@ -777,6 +886,18 @@ export function setupPlayerController(
         if (isGameActive()) {
           const hitObstacle = checkObstacleCollision();
           if (hitObstacle) triggerFallState(hitObstacle);
+
+          // Check for falling into gaps (falling cube road)
+          if (fallingCubeRoadController && !jumpMotion.active) {
+            const isOverGap = fallingCubeRoadController.isOverGap(
+              playerRoot.position.x,
+              playerRoot.position.z
+            );
+            if (isOverGap) {
+              console.log("⚠️ Player fell into gap!");
+              triggerFallState();
+            }
+          }
 
           // Check Coins
           const playerBox = computePlayerAABB();
@@ -837,10 +958,31 @@ export function setupPlayerController(
     targetX = 0;
     playerRoot.position.x = 0;
 
+    // RESTORE CAMERA OFFSET
+    // If we have a saved Y offset (from before a fall), restore it now
+    // to prevent the camera from snapping to overhead view.
+    // logic: TargetY = PlayerY + SavedOffset
+    if (cameraTarget && savedYOffset !== null) {
+      cameraTarget.position.y = playerRoot.position.y + savedYOffset;
+      console.log(`🔄 Restored Camera Y Offset: ${savedYOffset}`);
+      savedYOffset = null; // Clear after use
+    } else if (cameraTarget && isFallingInGap) {
+      // Fallback if no offset saved but we were falling (should not happen with new logic)
+    }
+
+    // FORCE METADATA UPDATE
+    // Crucial: Update metadata immediately so next frame's delta is 0
+    playerRoot.metadata = {
+      lastX: playerRoot.position.x,
+      lastY: playerRoot.position.y,
+      lastZ: playerRoot.position.z
+    };
+
     // Reset state
     gameStarted = false;
     requestedStart = false;
     isOnPlatform = false;
+    isFallingInGap = false; // logic reset
     jumpMotion.active = false;
     jumpMotion.velocity = 0;
     bounceBackActive = false;
@@ -901,6 +1043,7 @@ export function setupPlayerController(
     touchState.isDragging = false;
     const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
     if (distance < SWIPE_THRESHOLD && deltaTime < TAP_THRESHOLD) {
+      // Swipe Up = Jump
       keyState.jump = true; setTimeout(() => (keyState.jump = false), 100); return;
     }
     if (distance >= SWIPE_THRESHOLD && deltaTime < SWIPE_MAX_TIME) {
@@ -935,5 +1078,6 @@ export function setupPlayerController(
   return {
     handleKeyDown, handleKeyUp, handleTouchStart, handleTouchMove, handleTouchEnd,
     handlePointerDown, handlePointerUp, startGame, ensureIdle, dispose, reset,
+    cameraTarget, // Expose the transform node
   };
 }

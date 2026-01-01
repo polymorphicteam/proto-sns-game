@@ -6,10 +6,12 @@ import { createWorldScroll, WorldScrollController } from "./worldScroll";
 import { createObstacleSystem, ObstacleController } from "../obstacles/obstacleSystem";
 import { createCoinSystem, CoinController } from "./coinSystem";
 import { createRoadsideCars, RoadsideCarsController } from "./roadsideCars";
+import { createFallingCubeRoad, FallingCubeRoadController } from "./fallingCubeRoad";
 
 export interface EnvironmentController {
   obstacleController: ObstacleController;
   coinController: CoinController;
+  fallingCubeRoadController: FallingCubeRoadController;
   dispose(): void;
 }
 
@@ -24,17 +26,31 @@ export function setupEnvironment(
 ): EnvironmentController {
 
   // ------------------------------------------------------
-  // 1) CREATE STATIC WORLD (ground + buildings + roads)
+  // 1) FALLING CUBE ROAD (dynamic obstacle cubes) - Created first to receive callbacks
+  // ------------------------------------------------------
+  const fallingCubeRoadController: FallingCubeRoadController = createFallingCubeRoad(
+    scene,
+    shadowGenerator,
+    getScrollSpeed
+  );
+
+  // ------------------------------------------------------
+  // 2) CREATE STATIC WORLD (ground + buildings + roads)
   // ------------------------------------------------------
   const world: WorldSegments = createWorldSegments(
     scene,
     shadowGenerator,
     modelRoot,
-    textureRoot
+    textureRoot,
+    (spacing) => {
+      // Callback when building spacing is calculated
+      console.log(`🏗️ World spacing ready: ${spacing}, rebuilding road...`);
+      fallingCubeRoadController.rebuild(spacing);
+    }
   );
 
   // ------------------------------------------------------
-  // 2) CREATE SCROLL SYSTEM (movement + texture offset)
+  // 3) CREATE SCROLL SYSTEM (movement + texture offset)
   // ------------------------------------------------------
   const scrollController: WorldScrollController = createWorldScroll(
     scene,
@@ -43,7 +59,7 @@ export function setupEnvironment(
   );
 
   // ------------------------------------------------------
-  // 3) COIN SYSTEM
+  // 4) COIN SYSTEM
   // ------------------------------------------------------
   const coinController: CoinController = createCoinSystem(
     scene,
@@ -52,7 +68,7 @@ export function setupEnvironment(
   );
 
   // ------------------------------------------------------
-  // 4) ROADSIDE CARS (decorative parked cars)
+  // 5) ROADSIDE CARS (decorative parked cars)
   // ------------------------------------------------------
   const roadsideCarsController: RoadsideCarsController = createRoadsideCars(
     scene,
@@ -61,7 +77,7 @@ export function setupEnvironment(
   );
 
   // ------------------------------------------------------
-  // 4) OBSTACLE SYSTEM (jump / duck / platform)
+  // 6) OBSTACLE SYSTEM (jump / duck / platform)
   // ------------------------------------------------------
   const obstacleController: ObstacleController = createObstacleSystem(
     scene,
@@ -76,15 +92,23 @@ export function setupEnvironment(
   );
 
   // ------------------------------------------------------
-  // 4) DISPOSE removes world + scroll observers
+  // 6.5) LINK ROAD TO OBSTACLES (Prevent holes under obstacles)
+  // ------------------------------------------------------
+  fallingCubeRoadController.setObstacleChecker((x, z, radius) => {
+    return obstacleController.hasObstacleAt(x, z, radius);
+  });
+
+  // ------------------------------------------------------
+  // 7) DISPOSE removes world + scroll observers
   // ------------------------------------------------------
   function dispose() {
     obstacleController.dispose();
     coinController.dispose();
     roadsideCarsController.dispose();
+    fallingCubeRoadController.dispose();
     scrollController.dispose();
     world.dispose();
   }
 
-  return { dispose, obstacleController, coinController };
+  return { dispose, obstacleController, coinController, fallingCubeRoadController };
 }

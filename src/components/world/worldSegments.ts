@@ -27,7 +27,8 @@ export function createWorldSegments(
   scene: BABYLON.Scene,
   shadowGenerator: BABYLON.ShadowGenerator,
   modelRoot: string,
-  textureRoot: string
+  textureRoot: string,
+  onSpacingReady?: (spacing: number) => void // <--- Added optional callback
 ): WorldSegments {
   // CONFIG
   const targetSegmentCount = 6;
@@ -122,6 +123,7 @@ export function createWorldSegments(
   // ---------------------------------------------
   // GROUND SEGMENTS
   // ---------------------------------------------
+  // NOTE: Ground is now hidden because fallingCubeRoad.ts provides the visible road surface
   function createGroundSegment(i: number, spacing: number) {
     const g = BABYLON.MeshBuilder.CreateGround(
       `ground-${i}`,
@@ -131,6 +133,7 @@ export function createWorldSegments(
     g.material = groundMaterial;
     g.receiveShadows = true;
     g.position.z = -i * spacing;
+    g.isVisible = false; // Hidden - falling cubes replace visual road
     return g;
   }
 
@@ -237,10 +240,20 @@ export function createWorldSegments(
 
       const base = new BABYLON.TransformNode("buildSeg-0", scene);
       createGroup(base, "B_A0", 0, meshes);
-      createGroup(base, "B_B0", Math.PI, meshes);
+      const leftGroup = createGroup(base, "B_B0", Math.PI, meshes);
+      // Shift left buildings (User request: "-10 units along X")
+      leftGroup.position.x = -10;
 
       const bbox = base.getHierarchyBoundingVectors();
-      buildingSpacing = Math.max(Math.abs(bbox.max.z - bbox.min.z) - 1, 10);
+      // bbox height/length might be smaller, but we want to ENFORCE 42 cubes long (42 * 25 = 1050)
+      // So we set spacing to 1050. 
+      // User asked for 5x42x1 to ensure hole pattern (gridZ % 3) tiles perfectly.
+      buildingSpacing = 1050;
+
+      // Notify that spacing is ready so road can match it
+      if (onSpacingReady) {
+        onSpacingReady(buildingSpacing);
+      }
 
       rebuildGround(buildingSpacing, targetSegmentCount);
 

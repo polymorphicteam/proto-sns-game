@@ -73,17 +73,70 @@ export function createCamera(
     scene: BABYLON.Scene,
     canvas: HTMLCanvasElement
 ) {
+    const savedAlpha = localStorage.getItem("camera_alpha");
+    const savedBeta = localStorage.getItem("camera_beta");
+    const savedRadius = localStorage.getItem("camera_radius");
+
+    const startAlpha = savedAlpha ? parseFloat(savedAlpha) : Math.PI / 2;
+    const startBeta = savedBeta ? parseFloat(savedBeta) : Math.PI / 2.5;
+    const startRadius = savedRadius ? parseFloat(savedRadius) : 200;
+
     const camera = new BABYLON.ArcRotateCamera(
         "camera",
-        Math.PI / 2,
-        Math.PI / 2.5,
-        60,
+        startAlpha,
+        startBeta,
+        startRadius, // Radius increased to see more road (was 120)
         new BABYLON.Vector3(0, 8, 0),
         scene
     );
+    // 35mm Lens equivalent
+    // Vertical FOV = 2 * atan(24mm / (2 * 35mm)) ~= 37.8 degrees ~= 0.66 radians
+    // Wider Lens (approx 14-15mm)
+    camera.fov = 1.5;
 
-    // Lock camera - disable all user inputs
-    camera.inputs.clear(); // Remove all camera inputs (no rotate/zoom/pan)
+    // Enable camera orbit controls for debugging
+    // attachControl(canvas, noPreventDefault, useCtrlForPanning)
+    // Setting useCtrlForPanning to false enables Right-Click panning by default
+    // Enable camera orbit controls for debugging
+    camera.attachControl(canvas, true);
+
+    // Explicitly configure mouse input for Right-Click Panning
+    // We cast to any to avoid TypeScript errors with specific input properties
+    const mouseInput = camera.inputs.attached["mouse"] as any;
+    if (mouseInput) {
+        mouseInput.useCtrlForPanning = false;
+        mouseInput.buttons = [0, 1, 2]; // Allow all buttons
+        mouseInput.panningMouseButton = 2; // Right click for panning
+    }
+
+    // Remove default keyboard input to prevent Arrow Keys from orbiting
+    // We are handling Arrow Keys manually in babylonRunner.ts for panning
+    // Remove default keyboard input to prevent Arrow Keys from orbiting
+    // We are handling Arrow Keys manually in babylonRunner.ts for panning
+    camera.inputs.removeByType("ArcRotateCameraKeyboardMoveInput");
+
+    // NUCLEAR OPTION: Explicitly clear the key lists to prevent ANY default WASD/Arrow movement
+    camera.keysUp = [];
+    camera.keysDown = [];
+    camera.keysLeft = [];
+    camera.keysRight = [];
+
+    camera.lowerRadiusLimit = 20;
+    camera.upperRadiusLimit = 200;
+
+    // Enable Panning
+    camera.panningSensibility = 50; // Lower is faster
+    camera.panningAxis = new BABYLON.Vector3(1, 1, 0); // Allow panning on X and Y relative to camera
+
+    // Explicitly configure mouse input to ensure Right Click (2) works
+    // (Babylon 4.2+ sometimes needs this explicit mapping if defaults are weird)
+    // Note: attachControl(canvas, true, false) should have handled this, 
+    // but we can force it here if needed.
+    // However, simplest fix is to allow all axis and ensure sensibility is set.
+
+    // Ensure inputs are attached
+    // camera.inputs.addMouse(); // Already added by default
+
 
     return { camera };
 }
@@ -132,4 +185,33 @@ export function createSkyDome(scene: BABYLON.Scene, assetBase: string) {
     skyDome.position = BABYLON.Vector3.Zero();
 
     return { skyDome, skyMaterial, cloudTexture };
+}
+
+// -----------------------------------------------------------------------------
+// POST-PROCESS SETUP (Water Lens)
+// -----------------------------------------------------------------------------
+export function createLensEffect(scene: BABYLON.Scene, camera: BABYLON.Camera) {
+    const lensEffect = new BABYLON.LensRenderingPipeline(
+        "waterLens",
+        {
+            edge_blur: 0.5,
+            chromatic_aberration: 2.0,      // High for watery look
+            distortion: 0.8,                // Significant distortion
+            dof_focus_distance: 200,        // Focus far away (player/road)
+            dof_aperture: 3.0,              // Slight blur for depth
+            grain_amount: 0.15,
+            dof_pentagon: true,
+            dof_gain: 1.0,
+            dof_threshold: 1.0,
+            dof_darken: 0.25
+        },
+        scene,
+        1.0,
+        [camera]
+    );
+
+    // If available in this version:
+    // lensEffect.setAperture(3.0); 
+
+    return { lensEffect };
 }

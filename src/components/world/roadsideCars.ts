@@ -21,8 +21,8 @@ export function createRoadsideCars(
     // Configuration
     const SPAWN_Z = -800;        // Where cars spawn (far ahead)
     const DESPAWN_Z = 150;       // Where cars despawn (behind player)
-    const LEFT_X = -45;          // 45 units left of center
-    const RIGHT_X = 45;          // 45 units right of center
+    const LEFT_X = -120;         // Moved out for 7-lane road (was -45)
+    const RIGHT_X = 120;         // Moved out for 7-lane road (was 45)
     const MIN_SPACING = 150;     // Minimum Z spacing between cars
     const MAX_SPACING = 350;     // Maximum Z spacing between cars
     const CAR_Y = -5;            // Lower to road surface (model origin offset)
