@@ -305,6 +305,7 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   // --------------------------------------------
   let cameraLocked = false;
   let savedLockedTarget: BABYLON.Nullable<BABYLON.AbstractMesh | BABYLON.TransformNode | BABYLON.Vector3> = null;
+  let previousGameState: string = "idle";
 
   // Save camera orbit state when pausing
   let savedCameraState: {
@@ -323,15 +324,18 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
       if (!cameraLocked) {
         camera.detachControl();
 
-        // Restore camera orbit state from before pause
-        if (savedCameraState) {
+        // Only restore camera state when UNPAUSING (coming from paused state)
+        // On fresh start/restart (from idle or gameover), use current camera position
+        if (savedCameraState && previousGameState === "paused") {
           camera.alpha = savedCameraState.alpha;
           camera.beta = savedCameraState.beta;
           camera.radius = savedCameraState.radius;
           camera.target.copyFrom(savedCameraState.targetPosition);
-          savedCameraState = null;
-          console.log("📷 Camera state restored");
+          console.log("📷 Camera state restored (unpause)");
+        } else {
+          console.log("📷 Fresh start - using current camera position");
         }
+        savedCameraState = null;
 
         // Restore locked target for gameplay
         if (savedLockedTarget) {
@@ -364,6 +368,9 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
         console.log("🔓 Camera Unlocked (Not Playing) - Free orbit enabled");
       }
     }
+
+    // Track previous game state for next frame
+    previousGameState = gameState;
 
     // User requested panning ONLY in Pause/Idle. 
     // So block if gameover.

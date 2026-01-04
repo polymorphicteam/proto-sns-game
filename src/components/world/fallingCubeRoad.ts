@@ -11,6 +11,9 @@ const CONFIG = {
     cubesLong: 42,  // 42 * 25 = 1050 units long
     cubeSize: 25,
 
+    // Extra cubes at start to fill gap near buildings
+    extraStartRows: 6, // 6 extra rows at positive Z
+
     // Total road dimensions
     get roadWidth() { return this.cubesWide * this.cubeSize; }, // 175
     get roadLength() { return this.cubesLong * this.cubeSize; }, // 1050
@@ -27,7 +30,8 @@ const CONFIG = {
     triggerZoneEnd: -200,  // Stop checking cubes this far ahead
 
     // Fall probability per frame when in trigger zone
-    fallProbabilityPerSecond: 2.0, // Significantly increased (was 0.6)
+    // Reduced by 1/3 (was 2.0, now 1.33)
+    fallProbabilityPerSecond: 1.33,
 
     // Maximum adjacent missing cubes (controls gap size)
     maxAdjacentGaps: 1,  // Only single cube holes, no strips
@@ -173,12 +177,18 @@ export function createFallingCubeRoad(
         for (let seg = 0; seg < CONFIG.segmentCount; seg++) {
             const segmentStartZ = -seg * roadLength;
 
+            // Include extra start rows (positive Z) for first segment only
+            const startRowIndex = (seg === 0) ? -CONFIG.extraStartRows : 0;
+
             for (let gx = 0; gx < CONFIG.cubesWide; gx++) {
-                for (let gz = 0; gz < cubesLong; gz++) {
+                for (let gz = startRowIndex; gz < cubesLong; gz++) {
                     const x = startX + gx * CONFIG.cubeSize;
                     // Position cubes to tile from segmentStartZ going backward (negative Z)
                     // First cube center at segmentStartZ - halfCube, last at segmentStartZ - roadLength + halfCube
                     const z = segmentStartZ - (gz * CONFIG.cubeSize) - (CONFIG.cubeSize / 2);
+
+                    // Mark extra start cubes as safe (never fall)
+                    const isExtraStartCube = gz < 0;
 
                     // Checkerboard pattern: use red or black based on position
                     const isRedSquare = (gx + gz + seg) % 2 === 0;
@@ -204,7 +214,7 @@ export function createFallingCubeRoad(
                         segmentIndex: seg,
                         isCellCenter: isCenter,
                         randomFallOffset: Math.random() * 100, // Random delay for falling
-                        isSafePath: false,
+                        isSafePath: isExtraStartCube, // Extra start cubes are always safe
                     });
                 }
             }
@@ -339,9 +349,12 @@ export function createFallingCubeRoad(
             // rearFallZ (1.5) + 3 rows (3.0) = 4.5
             const recycleZ = CONFIG.cubeSize * 4.5;
 
-            // A) Trigger Fall Behind Player
-            // Add random offset so they don't fall in perfect rows
-            const triggerZ = rearFallZ + (cube.randomFallOffset || 0);
+            // A) Trigger Fall Behind Player - TRIANGULAR PATTERN
+            // Cubes in center fall first, edges fall later (creates V-shape)
+            const centerX = 3; // Center lane index (0-6)
+            const distFromCenter = Math.abs(cube.gridX - centerX);
+            const triangleDelay = distFromCenter * 15; // More delay for edge cubes
+            const triggerZ = rearFallZ + triangleDelay + (cube.randomFallOffset || 0);
 
             if (cube.instance.position.z > triggerZ && cube.state === "active") {
                 cube.state = "falling";

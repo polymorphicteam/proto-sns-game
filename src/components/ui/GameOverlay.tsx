@@ -92,30 +92,30 @@ export const GameOverlay: React.FC = () => {
                         {matchTimeRemaining <= 0 ? "TIME'S UP!" : "GAME OVER"}
                     </div>
                     <div className="gameover-subtext">Press R to restart</div>
+                    <button
+                        className="reset-button"
+                        onClick={() => {
+                            // Dispatch R key event to trigger full restart in playerController
+                            window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', key: 'r' }));
+                        }}
+                        style={{
+                            marginTop: '20px',
+                            padding: '8px 16px',
+                            fontSize: '14px',
+                            backgroundColor: 'rgba(255, 50, 50, 0.9)',
+                            color: 'white',
+                            border: '2px solid rgba(255, 255, 255, 0.5)',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            pointerEvents: 'auto',
+                            textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+                            boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                        }}
+                    >
+                        🔄 Restart
+                    </button>
                 </div>
             )}
-
-            {/* Reset Button - Lower Right Corner */}
-            <button
-                className="reset-button"
-                onClick={() => useGameStore.getState().resetGame?.()}
-                style={{
-                    position: 'fixed',
-                    bottom: '20px',
-                    right: '20px',
-                    padding: '10px 20px',
-                    fontSize: '16px',
-                    backgroundColor: 'rgba(255, 50, 50, 0.8)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    pointerEvents: 'auto',
-                    zIndex: 1000,
-                }}
-            >
-                🔄 Reset
-            </button>
         </div>
     );
 };
