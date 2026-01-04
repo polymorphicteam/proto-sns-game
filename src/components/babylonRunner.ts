@@ -304,25 +304,64 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   // CAMERA PANNING UPDATE LOOP
   // --------------------------------------------
   let cameraLocked = false;
+  let savedLockedTarget: BABYLON.Nullable<BABYLON.AbstractMesh | BABYLON.TransformNode | BABYLON.Vector3> = null;
+
+  // Save camera orbit state when pausing
+  let savedCameraState: {
+    alpha: number;
+    beta: number;
+    radius: number;
+    targetPosition: BABYLON.Vector3;
+  } | null = null;
 
   scene.onBeforeRenderObservable.add(() => {
     // FULL CAMERA LOCK during gameplay
     const gameState = useGameStore.getState().gameState;
 
     if (gameState === "playing") {
-      // Lock camera - detach all controls
+      // Lock camera - detach all controls and restore locked target
       if (!cameraLocked) {
         camera.detachControl();
+
+        // Restore camera orbit state from before pause
+        if (savedCameraState) {
+          camera.alpha = savedCameraState.alpha;
+          camera.beta = savedCameraState.beta;
+          camera.radius = savedCameraState.radius;
+          camera.target.copyFrom(savedCameraState.targetPosition);
+          savedCameraState = null;
+          console.log("📷 Camera state restored");
+        }
+
+        // Restore locked target for gameplay
+        if (savedLockedTarget) {
+          camera.lockedTarget = savedLockedTarget;
+          savedLockedTarget = null;
+        }
         cameraLocked = true;
         console.log("🔒 Camera Locked (Playing)");
       }
       return;
     } else {
-      // Unlock camera - reattach controls
+      // Unlock camera - reattach controls and remove locked target for free orbiting
       if (cameraLocked) {
+        // Save camera orbit state before unlocking
+        savedCameraState = {
+          alpha: camera.alpha,
+          beta: camera.beta,
+          radius: camera.radius,
+          targetPosition: camera.target.clone()
+        };
+        console.log("💾 Camera state saved");
+
+        // Save the locked target before removing it
+        if (camera.lockedTarget) {
+          savedLockedTarget = camera.lockedTarget;
+          camera.lockedTarget = null;
+        }
         camera.attachControl(canvas, true);
         cameraLocked = false;
-        console.log("🔓 Camera Unlocked (Not Playing)");
+        console.log("🔓 Camera Unlocked (Not Playing) - Free orbit enabled");
       }
     }
 

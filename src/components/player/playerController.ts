@@ -852,7 +852,9 @@ export function setupPlayerController(
 
     // UPDATE CAMERA TARGET
     // Use DELTA tracking to allow manual panning to persist
-    if (cameraTarget) {
+    // IMPORTANT: Only lock camera to player during GAMEPLAY - allow free orbiting during pause/idle
+    const currentGameState = useGameStore.getState().gameState;
+    if (cameraTarget && currentGameState === "playing") {
       const deltaX = playerRoot.position.x - (playerRoot.metadata?.lastX ?? playerRoot.position.x);
       const deltaZ = playerRoot.position.z - (playerRoot.metadata?.lastZ ?? playerRoot.position.z);
       let deltaY = 0;
@@ -867,7 +869,10 @@ export function setupPlayerController(
       // Re-enabled lateral tracking (User preference)
       cameraTarget.position.x += deltaX;
       cameraTarget.position.z += deltaZ;
+    }
 
+    // Always update metadata tracking to prevent position jumps when resuming
+    if (playerRoot) {
       playerRoot.metadata = {
         ...(playerRoot.metadata || {}),
         lastX: playerRoot.position.x,
@@ -958,17 +963,14 @@ export function setupPlayerController(
     targetX = 0;
     playerRoot.position.x = 0;
 
-    // RESTORE CAMERA OFFSET
-    // If we have a saved Y offset (from before a fall), restore it now
-    // to prevent the camera from snapping to overhead view.
-    // logic: TargetY = PlayerY + SavedOffset
-    if (cameraTarget && savedYOffset !== null) {
-      cameraTarget.position.y = playerRoot.position.y + savedYOffset;
-      console.log(`🔄 Restored Camera Y Offset: ${savedYOffset}`);
-      savedYOffset = null; // Clear after use
-    } else if (cameraTarget && isFallingInGap) {
-      // Fallback if no offset saved but we were falling (should not happen with new logic)
+    // RESET CAMERA TARGET to default framing
+    // Always reset to player position with default Y offset (-15) on full reset
+    if (cameraTarget) {
+      cameraTarget.position.copyFrom(playerRoot.position);
+      cameraTarget.position.y -= 15; // Default framing offset
+      console.log("📷 Camera target reset to default position");
     }
+    savedYOffset = null; // Clear any saved offset
 
     // FORCE METADATA UPDATE
     // Crucial: Update metadata immediately so next frame's delta is 0
