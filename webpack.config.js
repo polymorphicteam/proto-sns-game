@@ -86,6 +86,10 @@ module.exports = {
           from: path.resolve(__dirname, 'public/scene'),
           to: 'scene',
         },
+        {
+          from: path.resolve(__dirname, 'public/intro-screen.png'),
+          to: 'intro-screen.png',
+        },
       ],
     }),
   ],
