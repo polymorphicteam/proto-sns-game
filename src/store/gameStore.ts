@@ -3,7 +3,7 @@ import { create } from 'zustand';
 /**
  * Game state types
  */
-export type GameStateType = 'idle' | 'playing' | 'paused' | 'gameover';
+export type GameStateType = 'idle' | 'playing' | 'paused' | 'gameover' | 'victory';
 export type PowerUpType = 'invincibility' | 'magnet' | 'doubleCoins' | 'shield';
 
 /**
@@ -37,6 +37,9 @@ export interface GameState {
 
     // Loading state
     isLoading: boolean;
+
+    // Intro screen state (stays visible until user taps start)
+    showIntroScreen: boolean;
 
     // Countdown state (3, 2, 1, 0=GO!, null=hidden)
     countdownValue: number | null;
@@ -77,6 +80,9 @@ interface GameActions {
     // Loading management
     setLoading: (loading: boolean) => void;
 
+    // Intro screen management
+    dismissIntroScreen: () => void;
+
     // Countdown management
     setCountdown: (value: number | null) => void;
 
@@ -103,6 +109,7 @@ const INITIAL_STATE: GameState = {
     lives: 3,
     gameState: 'idle',
     isLoading: true,
+    showIntroScreen: true,
     countdownValue: null,
     matchDuration: 120,        // 2 minutes
     matchTimeRemaining: 120,   // Starts at full duration
@@ -187,6 +194,12 @@ export const useGameStore = create<GameStore>((set) => ({
         set({ isLoading });
     },
 
+    // Intro screen actions
+    dismissIntroScreen: () => {
+        console.log('🎬 Intro screen dismissed');
+        set({ showIntroScreen: false });
+    },
+
     // Countdown actions
     setCountdown: (countdownValue: number | null) => {
         set({ countdownValue });
@@ -210,11 +223,13 @@ export const useGameStore = create<GameStore>((set) => ({
 
             // Check if time ran out
             if (newTime <= 0) {
-                console.log("⏱️ TIME'S UP! Match ended.");
+                // Victory if player still has lives, otherwise gameover
+                const isVictory = state.lives > 0;
+                console.log(isVictory ? "🎉 VICTORY! Player survived the match!" : "⏱️ TIME'S UP! Match ended.");
                 return {
                     matchTimeRemaining: 0,
                     isMatchTimerActive: false,
-                    gameState: 'gameover',
+                    gameState: isVictory ? 'victory' : 'gameover',
                 };
             }
 
@@ -229,6 +244,6 @@ export const useGameStore = create<GameStore>((set) => ({
     // Reset everything
     resetGame: () => {
         console.log('🔄 Game reset');
-        set({ ...INITIAL_STATE, isLoading: false, countdownValue: null });
+        set({ ...INITIAL_STATE, isLoading: false, showIntroScreen: false, countdownValue: null });
     },
 }));

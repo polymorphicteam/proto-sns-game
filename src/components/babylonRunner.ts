@@ -99,10 +99,33 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   const { assetBase, modelRoot, textureRoot } = getAssetRoots();
 
   // --------------------------------------------
-  // SKY DOME
+  // SKY DOME (Disabled)
   // --------------------------------------------
-  createSkyDome(scene, assetBase);
+  const { skyDome } = createSkyDome(scene, assetBase);
+  skyDome.isVisible = false; // Permanently hidden
 
+  // --------------------------------------------
+  // VICTORY CELEBRATION VFX
+  // --------------------------------------------
+  import("./player/celebrationVFX").then(({ createCelebrationVFX }) => {
+    let celebrationDispose: (() => void) | null = null;
+
+    useGameStore.subscribe((state) => {
+      if (state.gameState === 'victory' && !celebrationDispose) {
+        // Trigger fireworks and confetti!
+        const { dispose } = createCelebrationVFX(scene, camera, {
+          duration: 10,
+          fireworkCount: 8,
+        });
+        celebrationDispose = dispose;
+        console.log("🎆 Victory celebration triggered!");
+      } else if (state.gameState !== 'victory' && celebrationDispose) {
+        // Clean up on game reset
+        celebrationDispose();
+        celebrationDispose = null;
+      }
+    });
+  });
 
 
   // --------------------------------------------
