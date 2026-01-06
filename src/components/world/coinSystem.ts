@@ -1,13 +1,14 @@
 import * as BABYLON from "@babylonjs/core";
+import "@babylonjs/loaders";
 import { PlayerAABB } from "../player/playerController";
 
 import { useGameStore } from "../../store/gameStore";
-import { getCoinMaterial } from "../materials/MaterialFactory";
 
 export interface CoinSystemOptions {
     spawnZ?: number;
     despawnZ?: number;
     laneWidth?: number;
+    modelPath?: string;
 }
 
 export interface CoinInstance {
@@ -22,6 +23,7 @@ export interface CoinController {
     checkCollisions(playerAABB: PlayerAABB): number;
     dispose(): void;
     reset(): void;
+    isReady(): boolean;
 }
 
 export function createCoinSystem(
@@ -33,41 +35,97 @@ export function createCoinSystem(
     const spawnZ = options.spawnZ ?? -520;
     const despawnZ = options.despawnZ ?? 200;
     const laneWidth = options.laneWidth ?? 25;
-
-    // Material
-    // Material
-    const coinMaterial = getCoinMaterial(scene);
+    const modelPath = options.modelPath ?? "/scene/assets/model/coin/Bitcoin.glb";
 
     const root = new BABYLON.TransformNode("coins_root", scene);
     const coinPool: CoinInstance[] = [];
     const activeCoins: CoinInstance[] = [];
 
-    function createCoinMesh(): BABYLON.AbstractMesh {
-        // Create a cylinder acting as a coin
-        const mesh = BABYLON.MeshBuilder.CreateCylinder(
-            "coin",
-            { diameter: 4, height: 0.5, tessellation: 16 },
-            scene
-        );
-        mesh.rotation.x = Math.PI / 2; // Stand up facing camera
-        mesh.material = coinMaterial;
-        mesh.parent = root;
-        mesh.checkCollisions = false; // We handle AABB manually
+    // Source container for instancing (loaded from GLB)
+    let sourceContainer: BABYLON.AssetContainer | null = null;
+    let isLoaded = false;
+    const pendingSpawns: Array<{ laneIndex: number; yOffset: number; count: number; spacing: number }> = [];
 
-        // Glow effect? Maybe later.
-        shadowGenerator.addShadowCaster(mesh, true);
-        return mesh;
+    // Load the Bitcoin GLB model using AssetContainer
+    BABYLON.SceneLoader.LoadAssetContainerAsync(modelPath, "", scene).then((container) => {
+        console.log("🪙 Bitcoin GLB loaded successfully");
+        console.log(`   Meshes: ${container.meshes.length}`);
+
+        sourceContainer = container;
+        isLoaded = true;
+
+        // Process any pending spawns
+        for (const pending of pendingSpawns) {
+            spawnCoinInternal(pending.laneIndex, pending.yOffset, pending.count, pending.spacing);
+        }
+        pendingSpawns.length = 0;
+    }).catch((error) => {
+        console.error("❌ Failed to load Bitcoin GLB:", error);
+        isLoaded = true; // Mark as loaded to prevent hangs
+    });
+
+    function createCoinMesh(): BABYLON.AbstractMesh | null {
+        if (!sourceContainer) return null;
+
+        // Instantiate the model - creates a clone of all meshes
+        const instances = sourceContainer.instantiateModelsToScene(
+            (name) => `coin_${coinPool.length}_${name}`,
+            false // Don't clone materials (share them)
+        );
+
+        if (instances.rootNodes.length === 0) {
+            console.error("❌ No root nodes in coin container");
+            return null;
+        }
+
+        // Create a container transform node for this coin
+        const coinRoot = new BABYLON.TransformNode(`coin_root_${coinPool.length}`, scene);
+        coinRoot.parent = root;
+
+        // Parent all instantiated nodes to our container
+        for (const node of instances.rootNodes) {
+            node.parent = coinRoot;
+        }
+
+        // Scale the coin appropriately
+        coinRoot.scaling = new BABYLON.Vector3(1, 1, 1);
+
+        // Add all child meshes as shadow casters and make them reflective
+        const allMeshes = coinRoot.getChildMeshes(false);
+        for (const mesh of allMeshes) {
+            shadowGenerator.addShadowCaster(mesh, true);
+            mesh.receiveShadows = true;
+
+            // Make coin reflective by adjusting material
+            if (mesh.material && mesh.material instanceof BABYLON.PBRMaterial) {
+                const pbrMat = mesh.material as BABYLON.PBRMaterial;
+                pbrMat.metallic = 0.9;      // Highly metallic
+                pbrMat.roughness = 0.2;     // Low roughness for reflections
+            }
+        }
+
+        console.log(`🪙 Created coin with ${allMeshes.length} meshes`);
+
+        // Return the transform node (cast to AbstractMesh for interface compatibility)
+        return coinRoot as unknown as BABYLON.AbstractMesh;
     }
 
-    function acquire() {
+    function acquire(): CoinInstance | null {
         const pooled = coinPool.find((c) => !c.active);
         if (pooled) {
             pooled.active = true;
             pooled.mesh.setEnabled(true);
+            // Re-enable all child meshes
+            const children = (pooled.mesh as BABYLON.TransformNode).getChildMeshes?.(false);
+            if (children) {
+                children.forEach(m => m.setEnabled(true));
+            }
             return pooled;
         }
 
         const mesh = createCoinMesh();
+        if (!mesh) return null;
+
         const instance: CoinInstance = {
             mesh,
             active: true,
@@ -77,17 +135,27 @@ export function createCoinSystem(
         return instance;
     }
 
-    function spawnCoin(laneIndex: number, yOffset: number, count: number = 1, spacing: number = 10) {
+    function spawnCoinInternal(laneIndex: number, yOffset: number, count: number = 1, spacing: number = 10) {
         const xPos = laneIndex * laneWidth;
-        // Base Y for coin is usually around 4-5 units off ground, plus offset
         const baseY = 5;
 
         for (let i = 0; i < count; i++) {
             const coin = acquire();
+            if (!coin) continue;
+
             const zOffset = i * spacing;
             coin.mesh.position.set(xPos, baseY + yOffset, spawnZ + zOffset);
             activeCoins.push(coin);
         }
+    }
+
+    function spawnCoin(laneIndex: number, yOffset: number, count: number = 1, spacing: number = 10) {
+        if (!isLoaded || !sourceContainer) {
+            // Queue for later
+            pendingSpawns.push({ laneIndex, yOffset, count, spacing });
+            return;
+        }
+        spawnCoinInternal(laneIndex, yOffset, count, spacing);
     }
 
     function update(dt: number, scrollSpeed: number) {
@@ -182,5 +250,5 @@ export function createCoinSystem(
         console.log("Coin system reset");
     }
 
-    return { spawnCoin, update, checkCollisions, dispose, reset };
+    return { spawnCoin, update, checkCollisions, dispose, reset, isReady: () => isLoaded };
 }

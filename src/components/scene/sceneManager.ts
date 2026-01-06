@@ -20,6 +20,9 @@ export function createScene(canvas: HTMLCanvasElement) {
     );
     scene.environmentIntensity = 0.4; // Subtle reflections
 
+    // Set background color to white
+    scene.clearColor = new BABYLON.Color4(1, 1, 1, 1);
+
     return {
         engine,
         scene,
@@ -35,7 +38,7 @@ export function createLighting(scene: BABYLON.Scene) {
         new BABYLON.Vector3(0, 1, 0),
         scene
     );
-    hemisphericLight.intensity = 0.5;
+    hemisphericLight.intensity = 0.2; // Reduced from 0.5 for darker shadows
 
     const directionalLight = new BABYLON.DirectionalLight(
         "dirLight",
@@ -43,7 +46,7 @@ export function createLighting(scene: BABYLON.Scene) {
         scene
     );
     directionalLight.position = new BABYLON.Vector3(20, 40, -30);
-    directionalLight.intensity = 1.5;
+    directionalLight.intensity = 2.0; // Increased from 1.5 for higher contrast
 
     // Configure shadow generator
     const shadowGenerator = new BABYLON.ShadowGenerator(2048, directionalLight);

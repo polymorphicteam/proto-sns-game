@@ -143,6 +143,39 @@ export function createFallingCubeRoad(
     sourceCubeBlack.receiveShadows = true;
 
     // ----------------------------------------------------------
+    // SHADOW CATCHER GROUND PLANE
+    // Large white plane beneath the cubes to catch shadows
+    // Follows the camera to always be visible
+    // ----------------------------------------------------------
+    const shadowCatcherMaterial = new BABYLON.PBRMaterial("shadowCatcherMat", scene);
+    shadowCatcherMaterial.albedoColor = new BABYLON.Color3(1, 1, 1); // White
+    shadowCatcherMaterial.roughness = 1.0;
+    shadowCatcherMaterial.metallic = 0.0;
+    // Make it slightly transparent to blend with white background
+    shadowCatcherMaterial.alpha = 0.95;
+
+    const shadowCatcherPlane = BABYLON.MeshBuilder.CreateGround(
+        "shadowCatcher",
+        { width: 600, height: 2000 }, // Large enough to cover visible area
+        scene
+    );
+    shadowCatcherPlane.material = shadowCatcherMaterial;
+    shadowCatcherPlane.position.y = -CONFIG.cubeSize - 50; // Below falling cubes
+    shadowCatcherPlane.receiveShadows = true;
+    shadowCatcherPlane.isPickable = false;
+
+    // Update shadow catcher position to follow camera in render loop
+    const shadowCatcherObserver = scene.onBeforeRenderObservable.add(() => {
+        const camera = scene.activeCamera;
+        if (camera) {
+            // Follow camera X and Z, keep fixed Y below cubes
+            shadowCatcherPlane.position.x = camera.position.x * 0.3; // Subtle parallax
+            // Position ahead of camera (negative Z is forward in this game)
+            shadowCatcherPlane.position.z = camera.position.z - 600;
+        }
+    });
+
+    // ----------------------------------------------------------
     // CUBE DATA
     // ----------------------------------------------------------
     const allCubes: CubeData[] = [];
@@ -559,6 +592,7 @@ export function createFallingCubeRoad(
     // ----------------------------------------------------------
     function dispose() {
         scene.onBeforeRenderObservable.remove(updateObserver);
+        scene.onBeforeRenderObservable.remove(shadowCatcherObserver);
         unsubscribe(); // Remove game state listener
 
         for (const cube of allCubes) {
@@ -570,6 +604,8 @@ export function createFallingCubeRoad(
         sourceCubeBlack.dispose();
         redMaterial.dispose();
         blackMaterial.dispose();
+        shadowCatcherPlane.dispose();
+        shadowCatcherMaterial.dispose();
         fallenCubePositions.clear();
 
         console.log("🗑️ Falling cube road disposed");
