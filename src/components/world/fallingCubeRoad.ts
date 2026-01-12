@@ -389,8 +389,8 @@ export function createFallingCubeRoad(
             const triangleDelay = distFromCenter * 15; // More delay for edge cubes
             const triggerZ = rearFallZ + triangleDelay + (cube.randomFallOffset || 0);
 
-            // [DEBUG] FALLING DISABLED
-            const DEBUG_DISABLE_HOLES = true;
+            // [DEBUG] FALLING ENABLED
+            const DEBUG_DISABLE_HOLES = false;
 
             if (!DEBUG_DISABLE_HOLES && cube.instance.position.z > triggerZ && cube.state === "active") {
                 cube.state = "falling";
