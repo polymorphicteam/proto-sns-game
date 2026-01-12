@@ -1,3 +1,4 @@
+// src/components/obstacles/obstacleModelScanner.ts
 import { ObstacleType } from "./obstacleSystem";
 
 export type ObstacleModelMap = Record<ObstacleType, string[]>;

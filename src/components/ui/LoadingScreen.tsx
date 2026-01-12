@@ -1,3 +1,4 @@
+// src/components/ui/LoadingScreen.tsx
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
 import '../../styles/main.css';

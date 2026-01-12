@@ -1,3 +1,4 @@
+// src/components/scene/sceneManager.ts
 import * as BABYLON from "@babylonjs/core";
 
 // -----------------------------------------------------------------------------

@@ -1,3 +1,4 @@
+// src/components/obstacles/obstaclePatterns.ts
 import { ObstacleType } from "./obstacleSystem";
 
 export interface ObstacleDef {
@@ -7,7 +8,7 @@ export interface ObstacleDef {
 
 export interface CoinDef {
     laneIndex: number;
-    yOffset?: number; // 0 for ground, ~15 for platform
+    yOffset?: number; // 0 for ground, ~15 for platform, 8 for jump arcs
     count?: number;   // Number of coins in a row
     spacing?: number; // Spacing between coins in a row
 }
@@ -20,172 +21,161 @@ export interface PatternStep {
 
 export type ObstaclePattern = PatternStep[];
 
-// NIGHTMARE PATTERN (BALANCED + COINS)
-export const PATTERN_NIGHTMARE: ObstaclePattern = [
-    // --- PHASE 1: WARMUP (Balanced) ---
+// --- CONSTANTS ---
+const WALL = "insuperable" as const;
+const JUMP = "jump" as const;
+const DUCK = "duck" as const;
+const PLAT = "platform" as const;
+
+// --- ARCHITECTURES (BURST & BREATHE) ---
+
+// 1. ARCHITECTURE "THE GAUNTLET" (Il Guanto Rotante)
+// Structure: 2 Active Steps -> 1 Recovery Step (2.0s)
+const PATTERN_GAUNTLET: ObstaclePattern = [
+    // [BURST 1]
+    // Step 1: Center Jump to Start
     {
-        obstacles: [{ type: "jump", laneIndex: 0 }],
-        coins: [{ laneIndex: -1 }, { laneIndex: 1 }],
-        delayNext: 1.6
+        obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: 0 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8, yOffset: 8 }], // Arc hint
+        delayNext: 1.4 // Allow landing + prepare
     },
+    // Step 2: Force Right
     {
-        obstacles: [{ type: "duck", laneIndex: -1 }],
-        coins: [{ laneIndex: 0 }],
-        delayNext: 1.6
+        obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 0 }, { type: DUCK, laneIndex: 1 }],
+        coins: [{ laneIndex: 1, count: 3, spacing: 8 }],
+        delayNext: 2.0 // RECOVERY TRIGGER
     },
+    // [BREATHE]
+    // Recovery: Empty lane, coins guiding back to Center for next burst
     {
-        obstacles: [{ type: "jump", laneIndex: 1 }],
-        coins: [{ laneIndex: -1 }, { laneIndex: 0 }],
-        delayNext: 1.6
-    },
-    {
-        obstacles: [{ type: "duck", laneIndex: 0 }],
-        coins: [{ laneIndex: -1, count: 3, spacing: 8 }, { laneIndex: 1, count: 3, spacing: 8 }],
-        delayNext: 1.8
+        obstacles: [],
+        coins: [{ laneIndex: 0, count: 5, spacing: 6 }], // Guide to Center
+        delayNext: 1.0 // Short setup for next burst
     },
 
-    // --- PHASE 2: THE TUNNEL (Balanced) ---
-    // Walls on both sides, obstacles in center
+    // [BURST 2]
+    // Step 4: Center Jump
     {
-        obstacles: [
-            { type: "insuperable", laneIndex: -1 },
-            { type: "insuperable", laneIndex: 1 }
-        ],
-        delayNext: 1.2 // Increased from 0.4
+        obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: 0 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8, yOffset: 8 }],
+        delayNext: 1.4
     },
+    // Step 5: Force Left
     {
-        obstacles: [
-            { type: "insuperable", laneIndex: -1 },
-            { type: "jump", laneIndex: 0 },
-            { type: "insuperable", laneIndex: 1 }
-        ],
-        delayNext: 1.8 // Increased from 0.6 (Jump needs time)
-    },
-    {
-        obstacles: [
-            { type: "insuperable", laneIndex: -1 },
-            { type: "duck", laneIndex: 0 },
-            { type: "insuperable", laneIndex: 1 }
-        ],
-        delayNext: 1.8 // Increased from 0.6
-    },
-    // Platform enabled
-    {
-        obstacles: [
-            { type: "insuperable", laneIndex: -1 },
-            { type: "platform", laneIndex: 0 },
-            { type: "insuperable", laneIndex: 1 }
-        ],
-        coins: [{ laneIndex: 0, yOffset: 15, count: 3, spacing: 6 }],
-        delayNext: 2.2
-    },
-
-    // --- PHASE 3: ZIG-ZAG (Balanced) ---
-    { obstacles: [{ type: "insuperable", laneIndex: -1 }], delayNext: 0.9 }, // Increased from 0.4
-    { obstacles: [{ type: "insuperable", laneIndex: 0 }], delayNext: 0.9 },
-    { obstacles: [{ type: "insuperable", laneIndex: 1 }], delayNext: 0.9 },
-    { obstacles: [{ type: "insuperable", laneIndex: 0 }], delayNext: 0.9 },
-    { obstacles: [{ type: "insuperable", laneIndex: -1 }], delayNext: 1.5 },
-
-    // --- PHASE 4: THE TRAP (Balanced) ---
-    // Center wall, then immediately side walls
-    { obstacles: [{ type: "insuperable", laneIndex: 0 }], delayNext: 1.2 }, // Increased from 0.5
-    {
-        obstacles: [
-            { type: "insuperable", laneIndex: -1 },
-            { type: "insuperable", laneIndex: 1 }
-        ],
-        delayNext: 2.5
-    },
-
-    // --- PHASE 5: PLATFORM HELL (Disabled) ---
-    // {
-    //     obstacles: [{ type: "platform", laneIndex: -1 }],
-    //     coins: [{ laneIndex: 0, count: 5, spacing: 10 }],
-    //     delayNext: 2.2
-    // },
-    // {
-    //     obstacles: [{ type: "platform", laneIndex: 0 }],
-    //     delayNext: 2.2
-    // },
-    // {
-    //     obstacles: [{ type: "platform", laneIndex: 1 }],
-    //     coins: [{ laneIndex: 1, yOffset: 15, count: 2, spacing: 8 }],
-    //     delayNext: 2.2
-    // },
-    { obstacles: [{ type: "jump", laneIndex: 1 }], delayNext: 1.5 },
-];
-
-// CITY PATTERN (EASIER, MORE FLOW)
-export const PATTERN_CITY: ObstaclePattern = [
-    { obstacles: [{ type: "jump", laneIndex: 0 }], coins: [{ laneIndex: -1, count: 3, spacing: 8 }], delayNext: 2.2 },
-    { obstacles: [{ type: "jump", laneIndex: 1 }], coins: [{ laneIndex: 0, count: 3, spacing: 8 }], delayNext: 2.2 },
-    { obstacles: [{ type: "jump", laneIndex: -1 }], coins: [{ laneIndex: 1, count: 3, spacing: 8 }], delayNext: 2.2 },
-
-    { obstacles: [{ type: "duck", laneIndex: 0 }], delayNext: 2.2 },
-    { obstacles: [{ type: "duck", laneIndex: 1 }], delayNext: 2.2 },
-    { obstacles: [{ type: "duck", laneIndex: -1 }], delayNext: 2.2 },
-
-    // Platform enabled
-    {
-        obstacles: [{ type: "platform", laneIndex: 0 }],
-        coins: [{ laneIndex: 0, yOffset: 15, count: 5, spacing: 8 }],
-        delayNext: 3.0
-    },
-    {
-        obstacles: [{ type: "platform", laneIndex: -1 }, { type: "platform", laneIndex: 1 }],
-        coins: [{ laneIndex: 0, count: 5, spacing: 8 }],
-        delayNext: 3.0
+        obstacles: [{ type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: -1 }],
+        coins: [{ laneIndex: -1, count: 3, spacing: 8, yOffset: 8 }],
+        delayNext: 2.0 // RECOVERY TRIGGER
     }
 ];
 
-// FOOD PATTERN (Uses Burger.glb from jump folder)
-export const PATTERN_FOOD: ObstaclePattern = [
-    // Burger intro - uses jump type to load Burger.glb
-    {
-        obstacles: [{ type: "jump", laneIndex: 0 }],
-        coins: [{ laneIndex: -1, count: 3, spacing: 8 }, { laneIndex: 1, count: 3, spacing: 8 }],
-        delayNext: 2.2
-    },
-    {
-        obstacles: [{ type: "jump", laneIndex: -1 }],
-        coins: [{ laneIndex: 0, count: 3, spacing: 8 }],
-        delayNext: 2.2
-    },
-    {
-        obstacles: [{ type: "jump", laneIndex: 1 }],
-        coins: [{ laneIndex: -1, count: 3, spacing: 8 }],
-        delayNext: 2.2
-    },
-
-    // Mixed obstacles
-    { obstacles: [{ type: "duck", laneIndex: 0 }], delayNext: 2.0 },
-    {
-        obstacles: [{ type: "jump", laneIndex: -1 }, { type: "jump", laneIndex: 1 }],
-        coins: [{ laneIndex: 0, count: 5, spacing: 8 }],
-        delayNext: 2.2
-    },
-
-    // Jump over burgers
-    {
-        obstacles: [{ type: "jump", laneIndex: 0 }],
-        delayNext: 1.8
-    },
-    {
-        obstacles: [{ type: "jump", laneIndex: 0 }],
-        delayNext: 1.8
-    },
-
-    // Burgers on sides
+// 2. ARCHITECTURE "FLOOR IS LAVA"
+// Strict Rule: Platform (90 units) requires delayNext >= 1.8s for landing.
+const PATTERN_LAVA: ObstaclePattern = [
+    // [BURST 1]
+    // Step 1: Center Platform
     {
         obstacles: [
-            { type: "jump", laneIndex: -1 },
-            { type: "jump", laneIndex: 1 }
+            { type: PLAT, laneIndex: 0 },
+            { type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }
         ],
-        coins: [{ laneIndex: 0, count: 4, spacing: 8 }],
-        delayNext: 3.0
+        // Coins ON platform (y=15)
+        coins: [{ laneIndex: 0, yOffset: 15, count: 5, spacing: 10 }],
+        delayNext: 2.0 // PLAT_COST (1.8) + Buffer
     },
+    // Step 2: Left Platform
+    {
+        obstacles: [
+            { type: PLAT, laneIndex: -1 },
+            { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }
+        ],
+        coins: [{ laneIndex: -1, yOffset: 15, count: 5, spacing: 10 }],
+        delayNext: 2.2 // RECOVERY TRIGGER (Longer relax after platforming)
+    },
+
+    // [BREATHE] -> Guide to Right
+    {
+        obstacles: [],
+        coins: [{ laneIndex: 1, count: 4, spacing: 8 }],
+        delayNext: 1.2
+    },
+
+    // [BURST 2]
+    // Step 4: Right Platform
+    {
+        obstacles: [
+            { type: PLAT, laneIndex: 1 },
+            { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: -1 }
+        ],
+        coins: [{ laneIndex: 1, yOffset: 15, count: 5, spacing: 10 }],
+        delayNext: 2.0
+    }
 ];
 
-export const ALL_PATTERNS = [PATTERN_NIGHTMARE, PATTERN_CITY, PATTERN_FOOD];
+// 3. ARCHITECTURE "BROKEN SLALOM"
+// Focus: Lane changes guided by coins.
+const PATTERN_SLALOM: ObstaclePattern = [
+    // [BURST]
+    // Step 1: Jump Left
+    {
+        obstacles: [{ type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: -1 }],
+        coins: [{ laneIndex: -1, count: 3, spacing: 8, yOffset: 8 }],
+        delayNext: 1.5 // Jump + Move time
+    },
+    // Step 2: Jump Center
+    {
+        obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: 0 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8, yOffset: 8 }],
+        delayNext: 1.5
+    },
+    // Step 3: Jump Right
+    {
+        obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 0 }, { type: JUMP, laneIndex: 1 }],
+        coins: [{ laneIndex: 1, count: 3, spacing: 8, yOffset: 8 }],
+        delayNext: 2.0 // RECOVERY
+    },
 
+    // [BREATHE] -> Guide back to Center
+    {
+        obstacles: [],
+        coins: [{ laneIndex: 0, count: 5, spacing: 6 }],
+        delayNext: 1.0
+    }
+];
+
+// 4. ARCHITECTURE "INPUT OVERLOAD" (Chaos Control)
+// Reduced density, focusing on alternating actions.
+const PATTERN_OVERLOAD: ObstaclePattern = [
+    // [BURST 1]
+    // Jump Center
+    {
+        obstacles: [{ type: JUMP, laneIndex: 0 }, { type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }],
+        delayNext: 1.4
+    },
+    // Duck Left
+    {
+        obstacles: [{ type: DUCK, laneIndex: -1 }, { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }],
+        delayNext: 1.4
+    },
+    // Jump Right
+    {
+        obstacles: [{ type: JUMP, laneIndex: 1 }, { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: -1 }],
+        delayNext: 2.0 // BREATHE
+    },
+
+    // [BREATHE]
+    {
+        obstacles: [],
+        coins: [{ laneIndex: 0, count: 4, spacing: 8 }],
+        delayNext: 1.0
+    }
+];
+
+export const PATTERN_CITY = PATTERN_GAUNTLET; // Default reuse
+export const PATTERN_NIGHTMARE = PATTERN_LAVA; // Default reuse
+
+export const ALL_PATTERNS = [
+    PATTERN_GAUNTLET,
+    PATTERN_LAVA,
+    PATTERN_SLALOM,
+    PATTERN_OVERLOAD
+];

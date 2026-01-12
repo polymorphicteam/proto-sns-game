@@ -1,3 +1,4 @@
+// src/components/world/coinSystem.ts
 import * as BABYLON from "@babylonjs/core";
 import "@babylonjs/loaders";
 import { PlayerAABB } from "../player/playerController";

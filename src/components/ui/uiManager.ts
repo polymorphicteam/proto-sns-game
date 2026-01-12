@@ -1,3 +1,4 @@
+// src/components/ui/uiManager.ts
 import { useGameStore } from '../../store/gameStore';
 
 export interface UIManager {

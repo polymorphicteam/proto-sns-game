@@ -1,3 +1,4 @@
+// src/components/ui/CountdownOverlay.tsx
 import React from 'react';
 import { useGameStore } from '../../store/gameStore';
 import '../../styles/main.css';

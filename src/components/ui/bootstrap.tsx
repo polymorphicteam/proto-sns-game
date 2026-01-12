@@ -1,3 +1,4 @@
+// src/components/ui/bootstrap.tsx
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { GameOverlay } from '../ui/GameOverlay';

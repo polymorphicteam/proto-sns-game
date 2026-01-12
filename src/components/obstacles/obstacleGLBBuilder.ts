@@ -1,3 +1,4 @@
+// src/components/obstacles/obstacleGLBBuilder.ts
 import { Scene, AbstractMesh, SceneLoader, AssetContainer, Vector3, BoundingInfo } from "@babylonjs/core";
 import { ObstacleType } from "./obstacleSystem";
 import { ObstacleModelMap } from "./obstacleModelScanner";
