@@ -21,6 +21,13 @@ export interface ObstacleSystemOptions {
   maxSpawnDelay?: number;
 }
 
+// SAFETY CORRIDORS CONSTANTS
+const SAFETY_BUFFER_ENTRY = 40;
+const SAFETY_BUFFER_EXIT = 10;
+const SAFETY_BUFFER_JUMP = 40;
+const SAFETY_BUFFER_PLATFORM = 40;
+const SAFETY_BUFFER_WALL = 20;
+
 import { CoinController } from "../world/coinSystem";
 
 export interface ObstacleController {
@@ -30,6 +37,7 @@ export interface ObstacleController {
   reset(): void;
   isReady(): boolean;
   hasObstacleAt(x: number, z: number, radius: number): boolean;
+  isGroundLocked(x: number, z: number, laneWidth: number): boolean;
 }
 
 export interface ObstacleInstance {
@@ -417,6 +425,38 @@ export function createObstacleSystem(
     console.log("Obstacle system reset");
   }
   function isReady() { return glbsReady; }
+
+  function isGroundLocked(x: number, z: number, laneWidth: number): boolean {
+    for (const obs of activeObstacles) {
+      if (!obs.active) continue;
+
+      // Surgical Lane Check (0.45 precision)
+      const dx = Math.abs(x - obs.mesh.position.x);
+      if (dx >= laneWidth * 0.45) continue;
+
+      const obsZ = obs.mesh.position.z;
+      let isLocked = false;
+
+      switch (obs.type) {
+        case "duck":
+          isLocked = z >= obsZ - SAFETY_BUFFER_EXIT && z <= obsZ + SAFETY_BUFFER_ENTRY;
+          break;
+        case "jump":
+          isLocked = z >= obsZ - SAFETY_BUFFER_JUMP && z <= obsZ + SAFETY_BUFFER_JUMP;
+          break;
+        case "platform":
+          isLocked = z >= obsZ - (45 + SAFETY_BUFFER_PLATFORM) && z <= obsZ + (45 + SAFETY_BUFFER_PLATFORM);
+          break;
+        case "insuperable":
+          isLocked = z >= obsZ && z <= obsZ + SAFETY_BUFFER_WALL;
+          break;
+      }
+
+      if (isLocked) return true;
+    }
+    return false;
+  }
+
   function hasObstacleAt(x: number, z: number, radius: number): boolean {
     for (const obs of activeObstacles) {
       if (!obs.active) continue;
@@ -427,5 +467,5 @@ export function createObstacleSystem(
     return false;
   }
 
-  return { dispose, getActiveObstacles, getActivePlatformMeshes, reset, isReady, hasObstacleAt };
+  return { dispose, getActiveObstacles, getActivePlatformMeshes, reset, isReady, hasObstacleAt, isGroundLocked };
 }

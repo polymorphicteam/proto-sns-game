@@ -94,8 +94,8 @@ export function setupEnvironment(
   // ------------------------------------------------------
   // 6.5) LINK ROAD TO OBSTACLES (Prevent holes under obstacles)
   // ------------------------------------------------------
-  fallingCubeRoadController.setObstacleChecker((x, z, radius) => {
-    return obstacleController.hasObstacleAt(x, z, radius);
+  fallingCubeRoadController.setObstacleChecker((x, z, laneWidth) => {
+    return obstacleController.isGroundLocked(x, z, laneWidth);
   });
 
   // ------------------------------------------------------

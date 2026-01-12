@@ -76,7 +76,7 @@ export interface FallingCubeRoadController {
     fillGapAt(x: number, z: number): void;
 
     // Set callback to check for obstacles
-    setObstacleChecker(checker: (x: number, z: number, radius: number) => boolean): void;
+    setObstacleChecker(checker: (x: number, z: number, laneWidth: number) => boolean): void;
 
     // Dispose all resources
     dispose(): void;
@@ -98,7 +98,7 @@ export function createFallingCubeRoad(
     let cubesLong = CONFIG.cubesLong;
     let roadLength = CONFIG.roadLength;
 
-    let obstacleChecker: ((x: number, z: number, radius: number) => boolean) | null = null;
+    let obstacleChecker: ((x: number, z: number, laneWidth: number) => boolean) | null = null;
 
     // ----------------------------------------------------------
     // CUBE MATERIALS - Checkerboard pattern
@@ -469,25 +469,25 @@ export function createFallingCubeRoad(
     // CELL HOLE CHECK - Only cell centers can fall
     // ----------------------------------------------------------
     function canCubeFall(cube: CubeData): boolean {
-        // 1. Never outside lanes (exclude 0 and 6)
+        // 1. ABSOLUTE PRIORITY: GROUND LOCK (Safety Corridors)
+        // If the ground is locked by an obstacle, it is invulnerable.
+        // This check must come before everything else (probability, limits, etc.)
+        if (obstacleChecker) {
+            if (obstacleChecker(cube.instance.position.x, cube.instance.position.z, CONFIG.cubeSize)) {
+                return false;
+            }
+        }
+
+        // 2. Never outside lanes (exclude 0 and 6)
         // Allow columns 1, 2, 3, 4, 5 (Center 5)
         if (cube.gridX < 1 || cube.gridX > 5) {
             return false;
         }
 
-        // 1.5 Guaranteed Safe Path (Path Weaver)
+        // 3. Guaranteed Safe Path (Path Weaver)
         if (cube.isSafePath) return false;
 
-        // 1.6 OBSTACLE CHECK - Do not fall if there is an obstacle above!
-        // User requested: "Never allow any holes to be under or in front of or behind an obstacle"
-        // Increased radius to 40 (approx 2 cubes, +/- 50 units) to cover front/back/under
-        if (obstacleChecker) {
-            if (obstacleChecker(cube.instance.position.x, cube.instance.position.z, 40)) {
-                return false;
-            }
-        }
-
-        // 2. Enforce Z spacing (every 3 units) - Keeps rows clean
+        // 4. Enforce Z spacing (every 3 units) - Keeps rows clean
         if (cube.gridZ % 3 !== 0) {
             return false;
         }
