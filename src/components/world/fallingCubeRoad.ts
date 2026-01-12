@@ -30,8 +30,8 @@ const CONFIG = {
     triggerZoneEnd: -200,  // Stop checking cubes this far ahead
 
     // Fall probability per frame when in trigger zone
-    // Reduced by 1/3 (was 2.0, now 1.33)
-    fallProbabilityPerSecond: 1.33,
+    // Reduced base probability (was 1.33)
+    fallProbabilityPerSecond: 0.5,
 
     // Maximum adjacent missing cubes (controls gap size)
     maxAdjacentGaps: 1,  // Only single cube holes, no strips
@@ -445,9 +445,9 @@ export function createFallingCubeRoad(
                 if (cubeZ > CONFIG.triggerZoneEnd && cubeZ < CONFIG.triggerZoneStart) {
                     // Random chance to fall
                     // DIFFICULTY SCALING: Increase probability over time
-                    // Start at 1.0, increase by 0.1 every 10 seconds, cap at 5.0
+                    // Start at 1.0, increase by 0.02 every second (was 0.05), cap at 3.0
                     const timeSinceStart = performance.now() / 1000;
-                    const difficultyMult = Math.min(5.0, 1.0 + (timeSinceStart / 20)); // Slower ramp up
+                    const difficultyMult = Math.min(3.0, 1.0 + (timeSinceStart / 50)); // Slower ramp up
 
                     const fallChance = CONFIG.fallProbabilityPerSecond * difficultyMult * dt;
                     if (Math.random() < fallChance) {
