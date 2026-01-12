@@ -3,138 +3,117 @@ import { ObstacleType } from "./obstacleSystem";
 
 export interface ObstacleDef {
     type: ObstacleType;
-    laneIndex: number; // -1 (Left), 0 (Center), 1 (Right)
+    laneIndex: number;
 }
 
 export interface CoinDef {
     laneIndex: number;
-    yOffset?: number; // 0 for ground, ~15 for platform, 8 for jump arcs
-    count?: number;   // Number of coins in a row
-    spacing?: number; // Spacing between coins in a row
+    yOffset?: number;
+    count?: number;
+    spacing?: number;
 }
 
 export interface PatternStep {
     obstacles: ObstacleDef[];
     coins?: CoinDef[];
-    delayNext: number; // Time to wait before spawning the NEXT step
+    delayNext: number;
 }
 
 export type ObstaclePattern = PatternStep[];
 
-// --- CONSTANTS ---
 const WALL = "insuperable" as const;
 const JUMP = "jump" as const;
 const DUCK = "duck" as const;
 const PLAT = "platform" as const;
 
-// --- ARCHITECTURES (BURST & BREATHE) ---
-
-// 1. ARCHITECTURE "THE GAUNTLET" (Il Guanto Rotante)
-// Structure: 2 Active Steps -> 1 Recovery Step (2.0s)
+// 1. ARCHITECTURE "THE GAUNTLET" (Burst & Breathe)
+// Aggressività aumentata: 0.9s tra i salti centrali
 const PATTERN_GAUNTLET: ObstaclePattern = [
-    // [BURST 1]
-    // Step 1: Center Jump to Start
-    {
-        obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: 0 }],
-        coins: [{ laneIndex: 0, count: 3, spacing: 8, yOffset: 8 }], // Arc hint
-        delayNext: 1.4 // Allow landing + prepare
-    },
-    // Step 2: Force Right
-    {
-        obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 0 }, { type: DUCK, laneIndex: 1 }],
-        coins: [{ laneIndex: 1, count: 3, spacing: 8 }],
-        delayNext: 2.0 // RECOVERY TRIGGER
-    },
-    // [BREATHE]
-    // Recovery: Empty lane, coins guiding back to Center for next burst
-    {
-        obstacles: [],
-        coins: [{ laneIndex: 0, count: 5, spacing: 6 }], // Guide to Center
-        delayNext: 1.0 // Short setup for next burst
-    },
-
-    // [BURST 2]
-    // Step 4: Center Jump
+    // [BURST]
     {
         obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: 0 }],
         coins: [{ laneIndex: 0, count: 3, spacing: 8, yOffset: 8 }],
-        delayNext: 1.4
+        delayNext: 0.9 // MOLTO VICINO (Burst)
     },
-    // Step 5: Force Left
+    {
+        obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: 0 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8, yOffset: 8 }],
+        delayNext: 1.1 // Un po' di respiro
+    },
+    // Switch violento a Destra
+    {
+        obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 0 }, { type: DUCK, laneIndex: 1 }],
+        coins: [{ laneIndex: 1, count: 3, spacing: 8 }],
+        delayNext: 2.0 // RECOVERY
+    },
+    // [BREATHE]
+    {
+        obstacles: [],
+        coins: [{ laneIndex: 0, count: 6, spacing: 8 }],
+        delayNext: 1.0
+    },
+    // [BURST 2]
     {
         obstacles: [{ type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: -1 }],
         coins: [{ laneIndex: -1, count: 3, spacing: 8, yOffset: 8 }],
-        delayNext: 2.0 // RECOVERY TRIGGER
+        delayNext: 0.9 // Burst
+    },
+    {
+        obstacles: [{ type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }, { type: DUCK, laneIndex: -1 }],
+        delayNext: 2.2 // RECOVERY
     }
 ];
 
 // 2. ARCHITECTURE "FLOOR IS LAVA"
-// Strict Rule: Platform (90 units) requires delayNext >= 1.8s for landing.
 const PATTERN_LAVA: ObstaclePattern = [
-    // [BURST 1]
-    // Step 1: Center Platform
+    // Center Platform
     {
-        obstacles: [
-            { type: PLAT, laneIndex: 0 },
-            { type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }
-        ],
-        // Coins ON platform (y=15)
+        obstacles: [{ type: PLAT, laneIndex: 0 }, { type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }],
         coins: [{ laneIndex: 0, yOffset: 15, count: 5, spacing: 10 }],
-        delayNext: 2.0 // PLAT_COST (1.8) + Buffer
+        delayNext: 1.9 // Deve essere quasi 1.8 (Plat Cost)
     },
-    // Step 2: Left Platform
+    // Left Platform (Chain)
     {
-        obstacles: [
-            { type: PLAT, laneIndex: -1 },
-            { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }
-        ],
+        obstacles: [{ type: PLAT, laneIndex: -1 }, { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }],
         coins: [{ laneIndex: -1, yOffset: 15, count: 5, spacing: 10 }],
-        delayNext: 2.2 // RECOVERY TRIGGER (Longer relax after platforming)
+        delayNext: 2.2 // RECOVERY
     },
-
-    // [BREATHE] -> Guide to Right
+    // [BREATHE] -> Guide Right
     {
         obstacles: [],
         coins: [{ laneIndex: 1, count: 4, spacing: 8 }],
         delayNext: 1.2
     },
-
-    // [BURST 2]
-    // Step 4: Right Platform
+    // Right Platform
     {
-        obstacles: [
-            { type: PLAT, laneIndex: 1 },
-            { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: -1 }
-        ],
+        obstacles: [{ type: PLAT, laneIndex: 1 }, { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: -1 }],
         coins: [{ laneIndex: 1, yOffset: 15, count: 5, spacing: 10 }],
         delayNext: 2.0
     }
 ];
 
 // 3. ARCHITECTURE "BROKEN SLALOM"
-// Focus: Lane changes guided by coins.
+// Qui vogliamo ritmo.
 const PATTERN_SLALOM: ObstaclePattern = [
-    // [BURST]
-    // Step 1: Jump Left
+    // Left Jump
     {
         obstacles: [{ type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: -1 }],
         coins: [{ laneIndex: -1, count: 3, spacing: 8, yOffset: 8 }],
-        delayNext: 1.5 // Jump + Move time
+        delayNext: 1.3 // Tempo per spostarsi al centro
     },
-    // Step 2: Jump Center
+    // Center Jump
     {
         obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: 0 }],
         coins: [{ laneIndex: 0, count: 3, spacing: 8, yOffset: 8 }],
-        delayNext: 1.5
+        delayNext: 1.3 // Tempo per spostarsi a destra
     },
-    // Step 3: Jump Right
+    // Right Jump
     {
         obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 0 }, { type: JUMP, laneIndex: 1 }],
         coins: [{ laneIndex: 1, count: 3, spacing: 8, yOffset: 8 }],
         delayNext: 2.0 // RECOVERY
     },
-
-    // [BREATHE] -> Guide back to Center
+    // [BREATHE]
     {
         obstacles: [],
         coins: [{ laneIndex: 0, count: 5, spacing: 6 }],
@@ -142,36 +121,38 @@ const PATTERN_SLALOM: ObstaclePattern = [
     }
 ];
 
-// 4. ARCHITECTURE "INPUT OVERLOAD" (Chaos Control)
-// Reduced density, focusing on alternating actions.
+// 4. ARCHITECTURE "INPUT OVERLOAD" (High Speed)
 const PATTERN_OVERLOAD: ObstaclePattern = [
-    // [BURST 1]
-    // Jump Center
+    // Center Jump
     {
         obstacles: [{ type: JUMP, laneIndex: 0 }, { type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }],
-        delayNext: 1.4
+        delayNext: 0.9 // Burst
     },
-    // Duck Left
+    // Center Duck (Same Lane = Fast)
     {
-        obstacles: [{ type: DUCK, laneIndex: -1 }, { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }],
-        delayNext: 1.4
+        obstacles: [{ type: DUCK, laneIndex: 0 }, { type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }],
+        delayNext: 1.0
     },
-    // Jump Right
+    // Forced Lane Switch Left
     {
-        obstacles: [{ type: JUMP, laneIndex: 1 }, { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: -1 }],
-        delayNext: 2.0 // BREATHE
+        obstacles: [{ type: JUMP, laneIndex: -1 }, { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }],
+        delayNext: 2.0 // RECOVERY (Lane switch richiede tempo)
     },
-
     // [BREATHE]
     {
         obstacles: [],
-        coins: [{ laneIndex: 0, count: 4, spacing: 8 }],
+        coins: [{ laneIndex: 1, count: 4, spacing: 8 }],
         delayNext: 1.0
+    },
+    // Right Duck
+    {
+        obstacles: [{ type: DUCK, laneIndex: 1 }, { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: -1 }],
+        delayNext: 2.0
     }
 ];
 
-export const PATTERN_CITY = PATTERN_GAUNTLET; // Default reuse
-export const PATTERN_NIGHTMARE = PATTERN_LAVA; // Default reuse
+export const PATTERN_CITY = PATTERN_GAUNTLET;
+export const PATTERN_NIGHTMARE = PATTERN_LAVA;
 
 export const ALL_PATTERNS = [
     PATTERN_GAUNTLET,

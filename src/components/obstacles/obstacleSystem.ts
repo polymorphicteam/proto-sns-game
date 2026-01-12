@@ -37,75 +37,31 @@ export interface ObstacleInstance {
   collisionMeshes: BABYLON.AbstractMesh[];
   type: ObstacleType;
   variant?: number;
-  /**
-   * If true, this is a special hamburger instance masquerading as a "jump" obstacle.
-   */
   isHamburgerVariant?: boolean;
   active: boolean;
 }
 
-
-
-function buildJumpObstacle(
-  scene: BABYLON.Scene,
-  material: BABYLON.Material
-): BABYLON.Mesh {
-  const mesh = BABYLON.MeshBuilder.CreateBox(
-    "obs_jump",
-    { width: 12, height: 12, depth: 14 },
-    scene
-  );
+// ... [BUILDER FUNCTIONS RIMANGONO INVARIATE: buildJumpObstacle, buildDuckObstacle, etc.] ...
+function buildJumpObstacle(scene: BABYLON.Scene, material: BABYLON.Material): BABYLON.Mesh {
+  const mesh = BABYLON.MeshBuilder.CreateBox("obs_jump", { width: 12, height: 12, depth: 14 }, scene);
   mesh.material = material;
   mesh.position.y = 6;
   return mesh;
 }
-
-function buildDuckObstacle(
-  scene: BABYLON.Scene,
-  material: BABYLON.Material
-): BABYLON.Mesh {
-  const frame = BABYLON.MeshBuilder.CreateBox(
-    "obs_duck",
-    { width: 18, height: 6, depth: 10 },
-    scene
-  );
+function buildDuckObstacle(scene: BABYLON.Scene, material: BABYLON.Material): BABYLON.Mesh {
+  const frame = BABYLON.MeshBuilder.CreateBox("obs_duck", { width: 18, height: 6, depth: 10 }, scene);
   frame.material = material;
   frame.position.y = 12;
   return frame;
 }
-
-function buildPlatformObstacle(
-  scene: BABYLON.Scene,
-  material: BABYLON.Material
-): BABYLON.Mesh {
-  // CONFIGURAZIONE AGGIORNATA
-  // Altezza: 10 (Alta, ma superabile col salto max di 13.6)
-  // Profondità: 90 (Lunga piattaforma)
-  const width = 18;
-  const height = 15;
-  const depth = 90;
-
-  const platform = BABYLON.MeshBuilder.CreateBox(
-    "obs_platform",
-    { width, height, depth },
-    scene
-  );
+function buildPlatformObstacle(scene: BABYLON.Scene, material: BABYLON.Material): BABYLON.Mesh {
+  const width = 18; const height = 15; const depth = 90;
+  const platform = BABYLON.MeshBuilder.CreateBox("obs_platform", { width, height, depth }, scene);
   platform.material = material;
-
-  // POSIZIONAMENTO
-  // Alziamo il centro di metà dell'altezza affinché
-  // la base tocchi esattamente y = 0
   platform.position.y = height / 2;
-
   return platform;
 }
-
-function buildInsuperableObstacle(
-  scene: BABYLON.Scene,
-  material: BABYLON.Material
-): BABYLON.Mesh {
-  // Giant hamburger obstacle that cannot be jumped over!
-  // Use scale 2.5 to make it tall enough to be impassable
+function buildInsuperableObstacle(scene: BABYLON.Scene, material: BABYLON.Material): BABYLON.Mesh {
   const hamburger = buildHamburgerObstacle(scene, 1.5);
   hamburger.name = "obs_insuperable";
   return hamburger;
@@ -123,21 +79,17 @@ export function createObstacleSystem(
 ): ObstacleController {
   const laneWidth = options.laneWidth ?? 25;
   const laneCount = options.laneCount ?? 3;
-  // SPAWN SOONER (User Request)
-  const spawnZ = options.spawnZ ?? -400; // Was -800, now -400 to appear even faster
+  const spawnZ = options.spawnZ ?? -400;
   const despawnZ = options.despawnZ ?? 200;
-  const minSpawnDelay = options.minSpawnDelay ?? 2.0;
-  const maxSpawnDelay = options.maxSpawnDelay ?? 4.0;
 
   const materials = {
     jump: getObstacleMaterial(scene, "jump"),
     duck: getObstacleMaterial(scene, "duck"),
     platform: getObstacleMaterial(scene, "platform"),
     insuperable: getObstacleMaterial(scene, "insuperable"),
-    hamburger: getObstacleMaterial(scene, "jump"), // Uses jump material as fallback
+    hamburger: getObstacleMaterial(scene, "jump"),
   };
 
-  // Initialize GLB system
   const modelMap = scanObstacleFolders();
   let glbsReady = false;
 
@@ -161,33 +113,20 @@ export function createObstacleSystem(
   const activeObstacles: ObstacleInstance[] = [];
 
   function acquire(type: ObstacleType) {
-    // Determine if we should swap a "jump" or "insuperable" for a "hamburger"
     let useHamburger = false;
-
-    // GUARD: If specifically requesting a hamburger, don't mess with probabilities
     if (type !== "hamburger") {
-      if (type === "jump") {
-        useHamburger = Math.random() < HAMBURGER_AS_JUMP_PROBABILITY;
-      } else if (type === "insuperable") {
-        useHamburger = Math.random() < HAMBURGER_AS_INSUPERABLE_PROBABILITY;
-      }
+      if (type === "jump") useHamburger = Math.random() < HAMBURGER_AS_JUMP_PROBABILITY;
+      else if (type === "insuperable") useHamburger = Math.random() < HAMBURGER_AS_INSUPERABLE_PROBABILITY;
     }
 
     const variantCount = ObstacleGLBBuilder.getVariantCount(type);
-    const variantIndex =
-      variantCount > 0 ? Math.floor(Math.random() * variantCount) : undefined;
+    const variantIndex = variantCount > 0 ? Math.floor(Math.random() * variantCount) : undefined;
 
     const pooled = obstaclePool.find((o) => {
       if (o.type !== type || o.active) return false;
-
-      // Strict check match for hamburger variant
-      // If useHamburger is true, we ONLY want isHamburgerVariant === true
-      // If useHamburger is false, we ONLY want isHamburgerVariant === false (or undefined)
       const isHamburger = !!o.isHamburgerVariant;
       if (isHamburger !== useHamburger) return false;
-
       if (variantIndex === undefined) return true;
-      // Allow variant-specific match, or fall back to a generic mesh (no variant)
       return o.variant === variantIndex || o.variant === undefined;
     });
 
@@ -197,41 +136,30 @@ export function createObstacleSystem(
       return pooled;
     }
 
-    // Try to get a GLB mesh first
     let mesh: BABYLON.AbstractMesh | null = null;
     let collisionMeshes: BABYLON.AbstractMesh[] | null = null;
     let variantUsed: number | undefined = variantIndex;
-
-    // By default not a hamburger variant unless explicitly requested via probability swap
     let isHamburgerVariant = false;
 
     if (useHamburger) {
-      // Bypass GLB loading entirely for hamburger swap
-      // Use the procedural hamburger builder
-      // Note: We keep type="jump" or "insuperable" for the system, but flag it as isHamburgerVariant
-
       const scale = type === "insuperable" ? 2.0 : 1.0;
       mesh = buildHamburgerObstacle(scene, scale);
-
       collisionMeshes = [mesh];
       variantUsed = undefined;
       isHamburgerVariant = true;
     } else {
-      const glbResult =
-        variantIndex !== undefined
-          ? ObstacleGLBBuilder.getMesh(type, scene, variantIndex)
-          : ObstacleGLBBuilder.getMesh(type, scene);
+      const glbResult = variantIndex !== undefined
+        ? ObstacleGLBBuilder.getMesh(type, scene, variantIndex)
+        : ObstacleGLBBuilder.getMesh(type, scene);
 
       if (glbResult) {
         mesh = glbResult.root;
         collisionMeshes = glbResult.collisionMeshes;
       } else {
-        // Fallback to default builder
         mesh = obstacleBuilders[type]();
         collisionMeshes = [mesh];
         variantUsed = undefined;
       }
-      // Explicitly mark as NOT a hamburger variant (even if fallback looks like one)
       isHamburgerVariant = false;
     }
 
@@ -252,7 +180,8 @@ export function createObstacleSystem(
     return created;
   }
 
-  // --- CONSTANTS (ACTION-WINDOW) ---
+  // --- COSTANTI DI AZIONE ---
+  // Nota: JUMP_COST è 1.3s, ma in un "Burst" vogliamo spawnare PRIMA che finisca.
   const JUMP_COST = 1.3;
   const DUCK_COST = 1.0;
   const PLAT_COST = 1.8;
@@ -263,12 +192,11 @@ export function createObstacleSystem(
   let currentPatternIndex = 0;
   let nextSpawnDelay = 1.0;
 
-  // STATE TRACKING FOR ACTION WINDOW
+  // State tracking
   let lastActionCost = 0;
-  let lastSafeLane = 0; // Start assuming center is safe
+  let lastSafeLane = 0;
 
   function spawnFromPattern() {
-    // Check if we need to switch pattern
     if (currentPatternIndex >= currentPattern.length) {
       const randomIndex = Math.floor(Math.random() * ALL_PATTERNS.length);
       currentPattern = ALL_PATTERNS[randomIndex];
@@ -280,75 +208,71 @@ export function createObstacleSystem(
     const step = currentPattern[currentPatternIndex];
     let maxDepthInStep = 0;
 
-    // Track safe lane for this step (heuristic: find the lane WITHOUT a wall/obstacle)
-    // If multiple lanes are safe, we pick the one closest to the previous safe lane to minimize assumed movement.
-    // If NO lanes are safe (impossible?), we keep the previous one.
-    // We also need to analyze the step to determine the MAX action cost required.
+    // Logica Open Lanes per determinare la Safe Lane
+    let openLanes = [true, true, true]; // -1, 0, 1
     let currentStepActionCost = 0;
-    let openLanes = [false, false, false]; // indices 0, 1, 2 correpsonding to lanes -1, 0, 1
-
-    // Initialize openLanes as true, then mark false if blocked
-    openLanes = [true, true, true]; // -1, 0, 1
 
     for (const def of step.obstacles) {
       const obs = acquire(def.type);
       const xPos = def.laneIndex * laneWidth;
+      const laneArrIdx = def.laneIndex + 1;
 
-      // Mark lane as blocked
-      const laneArrIdx = def.laneIndex + 1; // -1->0, 0->1, 1->2
+      // Mark blocked lanes
       if (laneArrIdx >= 0 && laneArrIdx <= 2) {
-        openLanes[laneArrIdx] = false;
+        // Se è insuperable, blocca la corsia
+        // Se è jump/duck/platform, è "bloccata" nel senso che ha un costo, ma è percorribile
+        if (def.type === "insuperable") openLanes[laneArrIdx] = false;
       }
 
-      // Determine Action Cost for this specific obstacle
-      // If this obstacle is in the CURRENT safe path, it dictates the cost.
-      // Since we don't know the player's position, we assume they take the path of least resistance 
-      // OR we just take the max cost of the obstacles present if they force an action.
-      // But typically, a pattern step has either walls + 1 action, OR just walls.
-      // We'll take the MAX cost of any interactive obstacle in the step.
+      // Action Cost
       let cost = 0;
       if (def.type === "jump") cost = JUMP_COST;
       else if (def.type === "duck") cost = DUCK_COST;
       else if (def.type === "platform") cost = PLAT_COST;
+      if (cost > currentStepActionCost) currentStepActionCost = cost;
 
-      if (cost > currentStepActionCost) {
-        currentStepActionCost = cost;
-      }
-
-      // Check if this is a CAR under PLATFORM type
       const source = obs.mesh.metadata?.sourceUrl || "";
       const isCar = source.toLowerCase().includes("car");
       const isPlatformCar = isCar && obs.type === "platform";
-
       const yOffset = isPlatformCar ? -3 : 0;
+
       obs.mesh.position.set(xPos, obs.mesh.position.y + yOffset, spawnZ);
 
+      // Depth Check
       let depth = 12;
       if (def.type === "platform") depth = 90;
       else if (def.type === "duck") depth = 10;
       else if (def.type === "insuperable") depth = 14;
-
       if (depth > maxDepthInStep) maxDepthInStep = depth;
 
+      // Rotation
       if (isCar && (obs.type === "insuperable" || obs.type === "platform")) {
         const isRightSide = def.laneIndex >= 0;
         obs.mesh.rotation.y = isRightSide ? Math.PI : 0;
       } else {
         obs.mesh.rotation.y = 0;
       }
-
       activeObstacles.push(obs);
     }
 
-    // Determine the "Safe Lane" for this step
-    // We look for the open lane closest to lastSafeLane
+    // Determine current Safe Lane (heuristic)
     let bestLane = lastSafeLane;
+    // 1. Cerca corsia libera (senza ostacoli insuperable)
+    // 2. Se non c'è, cerca corsia interagibile (jump/duck)
+    // Priorità alla corsia più vicina alla precedente
     let minDist = 999;
     let foundOpen = false;
 
-    // Check -1, 0, 1
+    // Prima passata: cerchiamo corsie "vere" libere (senza nulla)
+    // Ma nel nostro sistema, spesso "Safe Lane" = "Lane with Jump".
+    // Quindi ricalcoliamo openLanes basandoci SOLO su Insuperable.
+    let playableLanes = [true, true, true];
+    step.obstacles.forEach(o => {
+      if (o.type === "insuperable") playableLanes[o.laneIndex + 1] = false;
+    });
+
     for (let l = -1; l <= 1; l++) {
-      if (openLanes[l + 1]) {
+      if (playableLanes[l + 1]) {
         const dist = Math.abs(l - lastSafeLane);
         if (dist < minDist) {
           minDist = dist;
@@ -358,102 +282,83 @@ export function createObstacleSystem(
       }
     }
 
-    // If the step is fully blocked (e.g. all jumps?), then the "safe" lane is where the action is intended.
-    // In our patterns, usually obstacles are the challenge. If there's a Jump in lane 0 and Walls elsewhere, 
-    // Lane 0 is the "Path" but it has a cost.
-    // If foundOpen is false, it means all lanes have obstacles. 
-    // We assume the player stays in their lane or moves to the 'least dangerous' one?
-    // Actually, if all blocked, the player MUST interact. We can assume the intended lane is the one with the interaction (Jump/Duck/Plat)
-    // rather than the Wall.
-    if (!foundOpen) {
-      // Find non-wall lane
-      for (const def of step.obstacles) {
-        if (def.type !== "insuperable") {
-          bestLane = def.laneIndex;
-          break;
-        }
-      }
-    }
-
     const currentSafeLane = bestLane;
+    const isSameLane = (currentSafeLane === lastSafeLane);
     const laneChangeDiff = Math.abs(currentSafeLane - lastSafeLane);
     const laneBuffer = laneChangeDiff * LANE_COST;
 
     // Spawn Coins
     if (step.coins) {
       for (const coinDef of step.coins) {
-        coinController.spawnCoin(
-          coinDef.laneIndex,
-          coinDef.yOffset || 0,
-          coinDef.count,
-          coinDef.spacing
-        );
+        coinController.spawnCoin(coinDef.laneIndex, coinDef.yOffset || 0, coinDef.count, coinDef.spacing);
       }
     }
 
-    // Setup next spawn delay
+    // --- CALCOLO DELAY INTELLIGENTE ---
+
+    // 1. Difficoltà
     const timeSinceStart = performance.now() / 1000;
     const speedMultiplier = Math.max(0.4, 1.0 - (timeSinceStart / 300));
 
-    // 1. Pattern Base Delay scaled by difficulty
-    const patternDelay = step.delayNext * speedMultiplier;
+    // Delay Base dal Pattern
+    let patternDelay = step.delayNext * speedMultiplier;
 
-    // 2. Physical Safety (Mesh Depth)
-    // Time to clear the mesh at current speed + buffer
-    // Start with 0 if speed is 0 to avoid Infinity
+    // 2. Sicurezza Fisica (Mesh Overlap)
+    // Questo è il limite "Hard": non possiamo spawnare dentro un altro oggetto.
     let meshSafetyDelay = 0;
     if (speed > 0) {
-      meshSafetyDelay = (maxDepthInStep + 20) / speed;
+      // Buffer ridotto a 10 per permettere spawn più vicini
+      meshSafetyDelay = (maxDepthInStep + 10) / speed;
     }
 
-    // 3. Action Window (Human Reaction + Animation)
-    // The cost of the *PREVIOUS* action dictates when we can start the *NEXT* one.
-    // Wait, the prompt says: "Se un'azione richiede un salto... il sistema deve sommare... per determinare il delay minimo dello step SUCCESSIVO"
-    // So we use the cost calculated for THIS step to delay the NEXT spawn.
-    // Actually, `lastActionCost` is the cost of the step that *just finished spawning* (which is this one, relative to the *next* one).
-    // The delay we set NOW is for the *next* spawn.
-    // So we use `currentStepActionCost` combined with the lane change we just did?
-    // No, logic is: Player performs action NOW. We must wait `Cost` time before showing next obstacle.
-    // AND if the *next* obstacle requires a lane change... we can't know that yet.
-    // The Prompt says: "NextDelay must not be lower than lastActionCost".
-    // "lastActionCost" in the prompt context implies the cost of the action associated with the obstacle we just spawned.
-    // So `currentStepActionCost` (calculated above) BECOMES `lastActionCost` for the purpose of setting `nextSpawnDelay`.
+    // 3. Action Window (Il Comfort Umano)
+    // Se rimaniamo nella STESSA corsia, siamo aggressivi (ignoriamo parte del costo azione).
+    // Se cambiamo corsia, siamo protettivi (sommiamo costo azione + spostamento).
 
-    // Correction: We calculate the cost of the CURRENTLY SPAWNING step.
-    // This cost dictates how much time the player needs to deal with IT before the NEXT thing appears.
-    // PLUS the time needed to switch lanes TO this position (handled by laneBuffer calculated above).
+    let requiredHumanTime = 0;
 
-    // Wait, if I shift lanes TO this obstacle, that time is spent BEFORE interacting? or DURING?
-    // Prompt: "Se un'azione richiede un salto e un cambio di corsia contemporaneo, il sistema deve sommare JUMP_COST + LANE_COST"
-    // So: TotalActionCost = ActionDuration + LaneTravelTime.
+    if (isSameLane) {
+      // BURST MODE INTELLIGENTE
+      // Se l'azione precedente era veloce (es. Duck o semplice corsa), possiamo spawnare subito (0.6s).
+      // MA se l'azione precedente richiedeva gravità (Jump o Platform), DOBBIAMO aspettare l'atterraggio.
 
-    const totalActionWindow = currentStepActionCost + laneBuffer;
+      // JUMP_COST = 1.3, PLAT_COST = 1.8. 
+      // Se lastActionCost è > 1.1, significa che siamo in aria o su una struttura.
+      if (lastActionCost > 1.1) {
+        requiredHumanTime = lastActionCost; // Aspetta di atterrare! (es. 1.3s)
+      } else {
+        requiredHumanTime = 0.6; // Burst rapido (es. dopo Duck o cambio corsia)
+      }
+    } else {
+      // SWITCH MODE (Cambio corsia)
+      // Sommiamo sempre il costo dell'azione precedente + il tempo di spostamento
+      requiredHumanTime = lastActionCost + laneBuffer;
+    }
 
-    // FORMULA
-    let calculatedDelay = Math.max(
-      patternDelay,       // Design intent (scaled)
-      meshSafetyDelay,    // Physics limits
-      totalActionWindow   // Human limits
+    // FORMULA FINALE
+    let finalDelay = Math.max(
+      patternDelay,       // Design
+      meshSafetyDelay,    // Fisica
+      requiredHumanTime   // Umano
     );
 
-    // Hard Floor (0.8s) -> as requested in previous prompt "non deve mai scendere sotto 0.8s"
-    if (calculatedDelay < 0.8) calculatedDelay = 0.8;
+    // Hard floor assoluto per evitare bug fisici
+    if (finalDelay < 0.6) finalDelay = 0.6;
 
-    // DEBUG: Warn if Safety/Action clauses are overriding the Pattern
-    if (calculatedDelay > patternDelay + 0.1 && patternDelay > 0) {
-      console.warn(`[SAFETY TRIGGER] Delay pushed from ${patternDelay.toFixed(2)}s to ${calculatedDelay.toFixed(2)}s. (ActionCost: ${currentStepActionCost}, LaneDiff: ${laneChangeDiff}, MeshSafety: ${meshSafetyDelay.toFixed(2)})`);
+    // Debug "Safety Trigger" solo se stiamo rallentando molto il pattern
+    if (finalDelay > patternDelay + 0.3 && patternDelay > 0) {
+      // console.warn(`Delay spinto da ${patternDelay.toFixed(2)} a ${finalDelay.toFixed(2)} (LaneChange: ${!isSameLane})`);
     }
 
-    nextSpawnDelay = calculatedDelay;
+    nextSpawnDelay = finalDelay;
 
-    // Update state for next cycle
+    // Aggiorna stato
     lastActionCost = currentStepActionCost;
     lastSafeLane = currentSafeLane;
-
     currentPatternIndex++;
   }
 
-  // OBSERVER
+  // ... [RESTO DEL FILE INVARIATO: Observer, dispose, reset, ecc.] ...
   const observer = scene.onBeforeRenderObservable.add(() => {
     const state = useGameStore.getState().gameState;
     const speed = getScrollSpeed();
@@ -468,13 +373,10 @@ export function createObstacleSystem(
 
     for (const obs of activeObstacles) {
       obs.mesh.position.z += movement;
-
       if (obs.type === "insuperable") {
         const sourceUrl = obs.mesh.metadata?.sourceUrl || "";
-        const isSoda = sourceUrl.toLowerCase().includes("soda");
-        if (isSoda) {
-          const rotationSpeed = dt * 1.5;
-          obs.mesh.rotate(BABYLON.Axis.Y, rotationSpeed, BABYLON.Space.LOCAL);
+        if (sourceUrl.toLowerCase().includes("soda")) {
+          obs.mesh.rotate(BABYLON.Axis.Y, dt * 1.5, BABYLON.Space.LOCAL);
         }
       }
     }
@@ -498,65 +400,29 @@ export function createObstacleSystem(
   });
 
   function dispose() {
-    if (observer) {
-      scene.onBeforeRenderObservable.remove(observer);
-    }
+    if (observer) scene.onBeforeRenderObservable.remove(observer);
     obstaclePool.forEach((o) => o.mesh.dispose());
     root.dispose();
   }
-
-  function getActiveObstacles() {
-    return activeObstacles;
-  }
-
-  function getActivePlatformMeshes() {
-    return activeObstacles
-      .filter((o) => o.type === "platform")
-      .map((o) => o.mesh);
-  }
-
+  function getActiveObstacles() { return activeObstacles; }
+  function getActivePlatformMeshes() { return activeObstacles.filter((o) => o.type === "platform").map((o) => o.mesh); }
   function reset() {
-    // Deactivate all active obstacles
-    for (const obs of activeObstacles) {
-      obs.active = false;
-      obs.mesh.setEnabled(false);
-    }
+    activeObstacles.forEach(o => { o.active = false; o.mesh.setEnabled(false); });
     activeObstacles.length = 0;
-
-    // Reset spawn state
     spawnTimer = 0;
     currentPatternIndex = 0;
     nextSpawnDelay = 2.0;
-
-    // Reset to first pattern or random? Let's pick random to be fresh
     const randomIndex = Math.floor(Math.random() * ALL_PATTERNS.length);
     currentPattern = ALL_PATTERNS[randomIndex];
-
     console.log("Obstacle system reset");
   }
-
-  function isReady() {
-    return glbsReady;
-  }
-
-  // Check if there is an active obstacle at world position (x, z) within tolerance
+  function isReady() { return glbsReady; }
   function hasObstacleAt(x: number, z: number, radius: number): boolean {
-    // Only check active obstacles
     for (const obs of activeObstacles) {
       if (!obs.active) continue;
-
-      const obsX = obs.mesh.position.x;
-      const obsZ = obs.mesh.position.z;
-
-      // Simple circular overlap check
-      const dx = x - obsX;
-      const dz = z - obsZ;
-      const distSq = dx * dx + dz * dz;
-
-      // Use squared distance for perf
-      if (distSq < radius * radius) {
-        return true;
-      }
+      const dx = x - obs.mesh.position.x;
+      const dz = z - obs.mesh.position.z;
+      if (dx * dx + dz * dz < radius * radius) return true;
     }
     return false;
   }
