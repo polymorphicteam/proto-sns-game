@@ -21,12 +21,18 @@ export interface ObstacleSystemOptions {
   maxSpawnDelay?: number;
 }
 
-// SAFETY CORRIDORS CONSTANTS
-const SAFETY_BUFFER_ENTRY = 40;
-const SAFETY_BUFFER_EXIT = 10;
-const SAFETY_BUFFER_JUMP = 40;
-const SAFETY_BUFFER_PLATFORM = 40;
-const SAFETY_BUFFER_WALL = 20;
+// SAFETY CORRIDORS CONSTANTS - Granular Control
+// ENTRY: Space before the obstacle (Run-up/Visibility)
+const BUFFER_ENTRY_JUMP = 130;
+const BUFFER_ENTRY_DUCK = 100;
+const BUFFER_ENTRY_PLAT = 100;
+const BUFFER_ENTRY_WALL = 60;
+
+// EXIT: Space after the obstacle (Landing/Recovery Animation)
+const BUFFER_EXIT_JUMP = 50;
+const BUFFER_EXIT_DUCK = 80;  // CRITICAL: Room for recovery animation (1.0s)
+const BUFFER_EXIT_PLAT = 60;
+const BUFFER_EXIT_WALL = 20;
 
 import { CoinController } from "../world/coinSystem";
 
@@ -439,16 +445,17 @@ export function createObstacleSystem(
 
       switch (obs.type) {
         case "duck":
-          isLocked = z >= obsZ - SAFETY_BUFFER_EXIT && z <= obsZ + SAFETY_BUFFER_ENTRY;
+          isLocked = z >= obsZ - BUFFER_EXIT_DUCK && z <= obsZ + BUFFER_ENTRY_DUCK;
           break;
         case "jump":
-          isLocked = z >= obsZ - SAFETY_BUFFER_JUMP && z <= obsZ + SAFETY_BUFFER_JUMP;
+          isLocked = z >= obsZ - BUFFER_EXIT_JUMP && z <= obsZ + BUFFER_ENTRY_JUMP;
           break;
         case "platform":
-          isLocked = z >= obsZ - (45 + SAFETY_BUFFER_PLATFORM) && z <= obsZ + (45 + SAFETY_BUFFER_PLATFORM);
+          // Platform has depth 90, so it extends 45 units in each direction from center
+          isLocked = z >= obsZ - (45 + BUFFER_EXIT_PLAT) && z <= obsZ + (45 + BUFFER_ENTRY_PLAT);
           break;
         case "insuperable":
-          isLocked = z >= obsZ && z <= obsZ + SAFETY_BUFFER_WALL;
+          isLocked = z >= obsZ - BUFFER_EXIT_WALL && z <= obsZ + BUFFER_ENTRY_WALL;
           break;
       }
 
