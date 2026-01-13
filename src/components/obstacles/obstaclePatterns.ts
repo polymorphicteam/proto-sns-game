@@ -21,99 +21,77 @@ export interface PatternStep {
 
 export type ObstaclePattern = PatternStep[];
 
-const WALL = "insuperable" as const;
-const JUMP = "jump" as const;
-const DUCK = "duck" as const;
-const PLAT = "platform" as const;
+const WALL = "insuperable" as const;  // Fries/Soda
+const JUMP = "jump" as const;         // Burger
+const DUCK = "duck" as const;         // Pipe
+const PLAT = "platform" as const;     // Bus
 
-// 1. ARCHITECTURE "THE GAUNTLET" (Burst & Breathe)
-// Aggressività aumentata: 0.9s tra i salti centrali
-const PATTERN_GAUNTLET: ObstaclePattern = [
-    // [BURST]
-    {
-        obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: 0 }],
-        coins: [{ laneIndex: 0, count: 3, spacing: 8, yOffset: 8 }],
-        delayNext: 0.9 // MOLTO VICINO (Burst)
-    },
-    {
-        obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: 0 }],
-        coins: [{ laneIndex: 0, count: 3, spacing: 8, yOffset: 8 }],
-        delayNext: 1.1 // Un po' di respiro
-    },
-    // Switch violento a Destra
-    {
-        obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 0 }, { type: DUCK, laneIndex: 1 }],
-        coins: [{ laneIndex: 1, count: 3, spacing: 8 }],
-        delayNext: 2.0 // RECOVERY
-    },
-    // [BREATHE]
-    {
-        obstacles: [],
-        coins: [{ laneIndex: 0, count: 6, spacing: 8 }],
-        delayNext: 1.0
-    },
-    // [BURST 2]
-    {
-        obstacles: [{ type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: -1 }],
-        coins: [{ laneIndex: -1, count: 3, spacing: 8, yOffset: 8 }],
-        delayNext: 0.9 // Burst
-    },
-    {
-        obstacles: [{ type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }, { type: DUCK, laneIndex: -1 }],
-        delayNext: 2.2 // RECOVERY
-    }
-];
+// =============================================================
+// PATTERNS - MAX 2 OBSTACLES PER ROW (always 1 free lane)
+// Variety of all obstacle types!
+// =============================================================
 
-// 2. ARCHITECTURE "FLOOR IS LAVA"
-const PATTERN_LAVA: ObstaclePattern = [
-    // Center Platform
+// 1. VARIETY MIX - All obstacle types
+const PATTERN_VARIETY: ObstaclePattern = [
+    // Burger jump center
     {
-        obstacles: [{ type: PLAT, laneIndex: 0 }, { type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }],
-        coins: [{ laneIndex: 0, yOffset: 15, count: 5, spacing: 10 }],
-        delayNext: 1.9 // Deve essere quasi 1.8 (Plat Cost)
+        obstacles: [{ type: JUMP, laneIndex: 0 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8, yOffset: 8 }],
+        delayNext: 1.5
     },
-    // Left Platform (Chain)
+    // Fries wall left
     {
-        obstacles: [{ type: PLAT, laneIndex: -1 }, { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }],
-        coins: [{ laneIndex: -1, yOffset: 15, count: 5, spacing: 10 }],
-        delayNext: 2.2 // RECOVERY
-    },
-    // [BREATHE] -> Guide Right
-    {
-        obstacles: [],
-        coins: [{ laneIndex: 1, count: 4, spacing: 8 }],
+        obstacles: [{ type: WALL, laneIndex: -1 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8 }],
         delayNext: 1.2
     },
-    // Right Platform
+    // Pipe duck right
     {
-        obstacles: [{ type: PLAT, laneIndex: 1 }, { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: -1 }],
-        coins: [{ laneIndex: 1, yOffset: 15, count: 5, spacing: 10 }],
+        obstacles: [{ type: DUCK, laneIndex: 1 }],
+        coins: [{ laneIndex: 1, count: 3, spacing: 8 }],
+        delayNext: 1.3
+    },
+    // Bus platform center
+    {
+        obstacles: [{ type: PLAT, laneIndex: 0 }],
+        coins: [{ laneIndex: 0, yOffset: 15, count: 4, spacing: 10 }],
         delayNext: 2.0
+    },
+    // Breathe
+    {
+        obstacles: [],
+        coins: [{ laneIndex: -1, count: 5, spacing: 6 }],
+        delayNext: 1.0
     }
 ];
 
-// 3. ARCHITECTURE "BROKEN SLALOM"
-// Qui vogliamo ritmo.
-const PATTERN_SLALOM: ObstaclePattern = [
-    // Left Jump
+// 2. JUMP FOCUS - Burgers with variety
+const PATTERN_JUMPS: ObstaclePattern = [
+    // Burger left
     {
-        obstacles: [{ type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: -1 }],
+        obstacles: [{ type: JUMP, laneIndex: -1 }],
         coins: [{ laneIndex: -1, count: 3, spacing: 8, yOffset: 8 }],
-        delayNext: 1.3 // Tempo per spostarsi al centro
+        delayNext: 1.5
     },
-    // Center Jump
+    // Burger center
     {
-        obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }, { type: JUMP, laneIndex: 0 }],
+        obstacles: [{ type: JUMP, laneIndex: 0 }],
         coins: [{ laneIndex: 0, count: 3, spacing: 8, yOffset: 8 }],
-        delayNext: 1.3 // Tempo per spostarsi a destra
+        delayNext: 1.5
     },
-    // Right Jump
+    // Burger right
     {
-        obstacles: [{ type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 0 }, { type: JUMP, laneIndex: 1 }],
+        obstacles: [{ type: JUMP, laneIndex: 1 }],
         coins: [{ laneIndex: 1, count: 3, spacing: 8, yOffset: 8 }],
-        delayNext: 2.0 // RECOVERY
+        delayNext: 1.5
     },
-    // [BREATHE]
+    // Fries wall
+    {
+        obstacles: [{ type: WALL, laneIndex: 0 }],
+        coins: [{ laneIndex: 1, count: 3, spacing: 8 }],
+        delayNext: 1.2
+    },
+    // Breathe
     {
         obstacles: [],
         coins: [{ laneIndex: 0, count: 5, spacing: 6 }],
@@ -121,42 +99,150 @@ const PATTERN_SLALOM: ObstaclePattern = [
     }
 ];
 
-// 4. ARCHITECTURE "INPUT OVERLOAD" (High Speed)
-const PATTERN_OVERLOAD: ObstaclePattern = [
-    // Center Jump
+// 3. DUCK FOCUS - Pipes with variety
+const PATTERN_DUCKS: ObstaclePattern = [
+    // Pipe left
     {
-        obstacles: [{ type: JUMP, laneIndex: 0 }, { type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }],
-        delayNext: 0.9 // Burst
+        obstacles: [{ type: DUCK, laneIndex: -1 }],
+        coins: [{ laneIndex: -1, count: 3, spacing: 8 }],
+        delayNext: 1.3
     },
-    // Center Duck (Same Lane = Fast)
+    // Pipe center
     {
-        obstacles: [{ type: DUCK, laneIndex: 0 }, { type: WALL, laneIndex: -1 }, { type: WALL, laneIndex: 1 }],
-        delayNext: 1.0
+        obstacles: [{ type: DUCK, laneIndex: 0 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8 }],
+        delayNext: 1.3
     },
-    // Forced Lane Switch Left
+    // Burger jump
     {
-        obstacles: [{ type: JUMP, laneIndex: -1 }, { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: 1 }],
-        delayNext: 2.0 // RECOVERY (Lane switch richiede tempo)
+        obstacles: [{ type: JUMP, laneIndex: 1 }],
+        coins: [{ laneIndex: 1, count: 3, spacing: 8, yOffset: 8 }],
+        delayNext: 1.5
     },
-    // [BREATHE]
+    // Pipe right
+    {
+        obstacles: [{ type: DUCK, laneIndex: 1 }],
+        coins: [{ laneIndex: 1, count: 3, spacing: 8 }],
+        delayNext: 1.3
+    },
+    // Breathe
     {
         obstacles: [],
-        coins: [{ laneIndex: 1, count: 4, spacing: 8 }],
+        coins: [{ laneIndex: 0, count: 5, spacing: 6 }],
         delayNext: 1.0
-    },
-    // Right Duck
-    {
-        obstacles: [{ type: DUCK, laneIndex: 1 }, { type: WALL, laneIndex: 0 }, { type: WALL, laneIndex: -1 }],
-        delayNext: 2.0
     }
 ];
 
-export const PATTERN_CITY = PATTERN_GAUNTLET;
-export const PATTERN_NIGHTMARE = PATTERN_LAVA;
+// 4. WALLS AND JUMPS - Fries/Soda walls with burgers
+const PATTERN_WALLS: ObstaclePattern = [
+    // Fries left
+    {
+        obstacles: [{ type: WALL, laneIndex: -1 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8 }],
+        delayNext: 1.2
+    },
+    // Burger center
+    {
+        obstacles: [{ type: JUMP, laneIndex: 0 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8, yOffset: 8 }],
+        delayNext: 1.5
+    },
+    // Fries right
+    {
+        obstacles: [{ type: WALL, laneIndex: 1 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8 }],
+        delayNext: 1.2
+    },
+    // Pipe center
+    {
+        obstacles: [{ type: DUCK, laneIndex: 0 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8 }],
+        delayNext: 1.3
+    },
+    // Breathe
+    {
+        obstacles: [],
+        coins: [{ laneIndex: -1, count: 5, spacing: 6 }],
+        delayNext: 1.0
+    }
+];
+
+// 5. PLATFORM MIX - Bus with other obstacles
+const PATTERN_PLATFORM: ObstaclePattern = [
+    // Burger first
+    {
+        obstacles: [{ type: JUMP, laneIndex: -1 }],
+        coins: [{ laneIndex: -1, count: 3, spacing: 8, yOffset: 8 }],
+        delayNext: 1.5
+    },
+    // Bus platform center
+    {
+        obstacles: [{ type: PLAT, laneIndex: 0 }],
+        coins: [{ laneIndex: 0, yOffset: 15, count: 5, spacing: 10 }],
+        delayNext: 2.2
+    },
+    // Fries wall
+    {
+        obstacles: [{ type: WALL, laneIndex: 1 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8 }],
+        delayNext: 1.2
+    },
+    // Pipe duck
+    {
+        obstacles: [{ type: DUCK, laneIndex: -1 }],
+        coins: [{ laneIndex: -1, count: 3, spacing: 8 }],
+        delayNext: 1.3
+    },
+    // Breathe
+    {
+        obstacles: [],
+        coins: [{ laneIndex: 1, count: 5, spacing: 6 }],
+        delayNext: 1.0
+    }
+];
+
+// 6. SLALOM - Alternating sides
+const PATTERN_SLALOM: ObstaclePattern = [
+    // Burger left
+    {
+        obstacles: [{ type: JUMP, laneIndex: -1 }],
+        coins: [{ laneIndex: -1, count: 3, spacing: 8, yOffset: 8 }],
+        delayNext: 1.4
+    },
+    // Fries right
+    {
+        obstacles: [{ type: WALL, laneIndex: 1 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8 }],
+        delayNext: 1.2
+    },
+    // Pipe left
+    {
+        obstacles: [{ type: DUCK, laneIndex: -1 }],
+        coins: [{ laneIndex: -1, count: 3, spacing: 8 }],
+        delayNext: 1.3
+    },
+    // Burger right
+    {
+        obstacles: [{ type: JUMP, laneIndex: 1 }],
+        coins: [{ laneIndex: 1, count: 3, spacing: 8, yOffset: 8 }],
+        delayNext: 1.4
+    },
+    // Breathe
+    {
+        obstacles: [],
+        coins: [{ laneIndex: 0, count: 5, spacing: 6 }],
+        delayNext: 1.0
+    }
+];
+
+export const PATTERN_CITY = PATTERN_VARIETY;
+export const PATTERN_NIGHTMARE = PATTERN_SLALOM;
 
 export const ALL_PATTERNS = [
-    PATTERN_GAUNTLET,
-    PATTERN_LAVA,
-    PATTERN_SLALOM,
-    PATTERN_OVERLOAD
+    PATTERN_VARIETY,   // Mix of all types
+    PATTERN_JUMPS,     // Burgers focus
+    PATTERN_DUCKS,     // Pipes focus
+    PATTERN_WALLS,     // Fries/Soda walls
+    PATTERN_PLATFORM,  // Bus platforms
+    PATTERN_SLALOM     // Alternating
 ];

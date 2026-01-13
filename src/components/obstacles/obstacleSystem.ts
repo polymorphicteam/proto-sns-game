@@ -314,8 +314,8 @@ export function createObstacleSystem(
     const timeSinceStart = performance.now() / 1000;
     const speedMultiplier = Math.max(0.4, 1.0 - (timeSinceStart / 300));
 
-    // Delay Base dal Pattern
-    let patternDelay = step.delayNext * speedMultiplier;
+    // Delay Base dal Pattern - multiply by 2 to reduce obstacles by 50%
+    let patternDelay = step.delayNext * speedMultiplier * 2.0;
 
     // 2. Sicurezza Fisica (Mesh Overlap)
     // Questo è il limite "Hard": non possiamo spawnare dentro un altro oggetto.

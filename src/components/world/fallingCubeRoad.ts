@@ -6,10 +6,10 @@ import { useGameStore } from "../../store/gameStore";
 // CONFIGURATION
 // ============================================================
 const CONFIG = {
-    // Grid dimensions - 7 wide × 42 long × 1 segment
-    cubesWide: 7,   // 7 * 25 = 175 units wide
-    cubesLong: 42,  // 42 * 25 = 1050 units long
-    cubeSize: 25,
+    // Grid dimensions - 14 wide × 84 long × 1 segment (smaller, denser cubes)
+    cubesWide: 14,   // 14 * 12 = 168 units wide
+    cubesLong: 84,   // 84 * 12 = 1008 units long
+    cubeSize: 12,
 
     // Extra cubes at start to fill gap near buildings
     extraStartRows: 6, // 6 extra rows at positive Z
@@ -30,8 +30,8 @@ const CONFIG = {
     triggerZoneEnd: -200,  // Stop checking cubes this far ahead
 
     // Fall probability per frame when in trigger zone
-    // Reduced base probability (was 1.33)
-    fallProbabilityPerSecond: 0.5,
+    // Very low probability for fewer, clustered holes
+    fallProbabilityPerSecond: 0.15,
 
     // Maximum adjacent missing cubes (controls gap size)
     maxAdjacentGaps: 1,  // Only single cube holes, no strips
@@ -275,8 +275,8 @@ export function createFallingCubeRoad(
             rowMap.get(key)!.set(cube.gridX, cube);
         }
 
-        // Start at center lane (Index 3 for width 7)
-        let currentLane = 3;
+        // Start at center lane (Index 7 for width 14)
+        let currentLane = 7;
 
         for (let seg = 0; seg < CONFIG.segmentCount; seg++) {
             for (let z = 0; z < cubesLong; z++) {
@@ -294,9 +294,9 @@ export function createFallingCubeRoad(
                 const dir = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
                 let nextLane = currentLane + dir;
 
-                // Clamp to inner lanes (1-5)
-                if (nextLane < 1) nextLane = 1;
-                if (nextLane > 5) nextLane = 5;
+                // Clamp to inner lanes (2-11)
+                if (nextLane < 2) nextLane = 2;
+                if (nextLane > 11) nextLane = 11;
 
                 currentLane = nextLane;
             }
@@ -384,9 +384,9 @@ export function createFallingCubeRoad(
 
             // A) Trigger Fall Behind Player - TRIANGULAR PATTERN
             // Cubes in center fall first, edges fall later (creates V-shape)
-            const centerX = 3; // Center lane index (0-6)
+            const centerX = 6.5; // Center lane index (0-13)
             const distFromCenter = Math.abs(cube.gridX - centerX);
-            const triangleDelay = distFromCenter * 15; // More delay for edge cubes
+            const triangleDelay = distFromCenter * 8; // More delay for edge cubes (reduced for wider grid)
             const triggerZ = rearFallZ + triangleDelay + (cube.randomFallOffset || 0);
 
             // [DEBUG] FALLING ENABLED
@@ -440,6 +440,7 @@ export function createFallingCubeRoad(
 
             // ----------------------------------------------------------
             // 4) TRIGGER FALLING (random chance in trigger zone)
+            // Creates variable-sized holes using 2x2 patterns (1-4 cubes)
             // ----------------------------------------------------------
             if (cube.state === "active" && !DEBUG_DISABLE_HOLES) {
                 const cubeZ = cube.instance.position.z;
@@ -448,16 +449,60 @@ export function createFallingCubeRoad(
                 if (cubeZ > CONFIG.triggerZoneEnd && cubeZ < CONFIG.triggerZoneStart) {
                     // Random chance to fall
                     // DIFFICULTY SCALING: Increase probability over time
-                    // Start at 1.0, increase by 0.02 every second (was 0.05), cap at 3.0
                     const timeSinceStart = performance.now() / 1000;
-                    const difficultyMult = Math.min(3.0, 1.0 + (timeSinceStart / 50)); // Slower ramp up
+                    const difficultyMult = Math.min(3.0, 1.0 + (timeSinceStart / 50));
 
                     const fallChance = CONFIG.fallProbabilityPerSecond * difficultyMult * dt;
                     if (Math.random() < fallChance) {
                         // Check safe path constraint
                         if (canCubeFall(cube)) {
+                            // Trigger this cube
                             cube.state = "falling";
                             cube.fallVelocity = 0;
+
+                            // Randomly decide hole size (1-4 cubes in 2x2 pattern)
+                            // 40% chance = 1 cube, 30% = 2 cubes, 20% = 3 cubes, 10% = 4 cubes
+                            const sizeRoll = Math.random();
+                            let holePattern: [number, number][] = [[0, 0]]; // Always include origin
+
+                            if (sizeRoll > 0.4) {
+                                // 2+ cubes - add one adjacent (either +X or +Z)
+                                if (Math.random() > 0.5) {
+                                    holePattern.push([1, 0]); // Right
+                                } else {
+                                    holePattern.push([0, 1]); // Forward
+                                }
+                            }
+                            if (sizeRoll > 0.7) {
+                                // 3+ cubes - add diagonal opposite
+                                holePattern.push([1, 1]);
+                            }
+                            if (sizeRoll > 0.9) {
+                                // 4 cubes - complete the 2x2
+                                if (!holePattern.some(([x, z]) => x === 1 && z === 0)) holePattern.push([1, 0]);
+                                if (!holePattern.some(([x, z]) => x === 0 && z === 1)) holePattern.push([0, 1]);
+                            }
+
+                            // Apply pattern to adjacent cubes
+                            for (const [offsetX, offsetZ] of holePattern) {
+                                if (offsetX === 0 && offsetZ === 0) continue; // Already triggered origin
+
+                                const targetGridX = cube.gridX + offsetX;
+                                const targetGridZ = cube.gridZ + offsetZ;
+
+                                // Find adjacent cube
+                                const adjacent = allCubes.find(c =>
+                                    c.gridX === targetGridX &&
+                                    c.gridZ === targetGridZ &&
+                                    c.segmentIndex === cube.segmentIndex &&
+                                    c.state === "active"
+                                );
+
+                                if (adjacent && canCubeFallForPattern(adjacent)) {
+                                    adjacent.state = "falling";
+                                    adjacent.fallVelocity = 0;
+                                }
+                            }
                         }
                     }
                 }
@@ -478,23 +523,23 @@ export function createFallingCubeRoad(
             }
         }
 
-        // 2. Never outside lanes (exclude 0 and 6)
-        // Allow columns 1, 2, 3, 4, 5 (Center 5)
-        if (cube.gridX < 1 || cube.gridX > 5) {
+        // 2. Never outside lanes (exclude 0-1 and 12-13)
+        // Allow columns 2-11 (Center 10)
+        if (cube.gridX < 2 || cube.gridX > 11) {
             return false;
         }
 
         // 3. Guaranteed Safe Path (Path Weaver)
         if (cube.isSafePath) return false;
 
-        // 4. Enforce Z spacing (every 3 units) - Keeps rows clean
-        if (cube.gridZ % 3 !== 0) {
+        // 4. Enforce Z spacing (every 6 units) - Fewer rows with holes
+        if (cube.gridZ % 6 !== 0) {
             return false;
         }
 
-        // 3. MAX 2 HOLES PER ROW
+        // 5. MAX 1 HOLE PER ROW - Creates clustered, predictable gaps
         // Count how many cubes in this row (same gridZ, same segment) have already fallen.
-        // If 2 or more, don't allow another hole.
+        // If 1 or more, don't allow another hole.
         let holesInRow = 0;
         for (const other of allCubes) {
             if (other.gridZ === cube.gridZ && other.segmentIndex === cube.segmentIndex) {
@@ -503,9 +548,32 @@ export function createFallingCubeRoad(
                 }
             }
         }
-        if (holesInRow >= 2) {
+        if (holesInRow >= 1) {
             return false;
         }
+
+        return true;
+    }
+
+    // ----------------------------------------------------------
+    // PATTERN HOLE CHECK - For adjacent cubes in 2x2 patterns
+    // Simpler check without row limit (pattern already decided)
+    // ----------------------------------------------------------
+    function canCubeFallForPattern(cube: CubeData): boolean {
+        // 1. Ground lock check
+        if (obstacleChecker) {
+            if (obstacleChecker(cube.instance.position.x, cube.instance.position.z, CONFIG.cubeSize)) {
+                return false;
+            }
+        }
+
+        // 2. Lane boundaries
+        if (cube.gridX < 2 || cube.gridX > 11) {
+            return false;
+        }
+
+        // 3. Safe path protection
+        if (cube.isSafePath) return false;
 
         return true;
     }

@@ -49,7 +49,7 @@ function buildLoopRange(state: keyof typeof loopFrameRanges, scroll: number) {
 }
 
 const sourceFrameRate = 24;
-const baseScrollSpeed = 135; // Increased from 100 per user request
+const baseScrollSpeed = 55; // Reduced for smaller cube density
 
 // Animation ranges config
 const animationRanges = {
@@ -216,20 +216,29 @@ export function createPlayerStateMachine(
   function ensureIdle() {
     if (idleInitialized) return;
 
+    // Force stop any running animations first
+    stopCurrentAnimation();
+
+    // Reset current state to Idle
+    currentPlayerState = "Idle";
+    setScrollSpeed(0);
+
     const idle = animationRanges.Idle;
     const frames = resolveFrames("Idle", idle);
 
     if (animationGroup) {
       const frameScale = animationGroupFrameRate / sourceFrameRate;
       animationGroup.reset();
+      animationGroup.stop(); // Ensure fully stopped
       animationGroup.start(
-        true,
-        1,
+        true,      // loop
+        1,         // speed
         frames.start * frameScale,
         frames.end * frameScale,
-        true
+        true       // isAdditive
       );
       idleInitialized = true;
+      console.log("✅ Player initialized to Idle animation");
     } else if (playerSkeleton) {
       playerAnimatable = scene.beginAnimation(
         playerSkeleton,
@@ -237,7 +246,10 @@ export function createPlayerStateMachine(
         frames.end,
         true
       );
-      if (playerAnimatable) idleInitialized = true;
+      if (playerAnimatable) {
+        idleInitialized = true;
+        console.log("✅ Player initialized to Idle animation (skeleton)");
+      }
     }
   }
 

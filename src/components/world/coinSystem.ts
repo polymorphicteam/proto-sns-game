@@ -97,11 +97,16 @@ export function createCoinSystem(
             shadowGenerator.addShadowCaster(mesh, true);
             mesh.receiveShadows = true;
 
-            // Make coin reflective by adjusting material
+            // Make coin highly reflective with gold metallic look
             if (mesh.material && mesh.material instanceof BABYLON.PBRMaterial) {
-                const pbrMat = mesh.material as BABYLON.PBRMaterial;
-                pbrMat.metallic = 0.9;      // Highly metallic
-                pbrMat.roughness = 0.2;     // Low roughness for reflections
+                // Clone the material so each coin can have unique settings if needed
+                const pbrMat = mesh.material.clone(`coin_mat_${coinPool.length}_${mesh.name}`) as BABYLON.PBRMaterial;
+                mesh.material = pbrMat;
+
+                pbrMat.metallic = 1.0;           // Fully metallic
+                pbrMat.roughness = 0.1;          // Very smooth for mirror-like reflections
+                pbrMat.albedoColor = new BABYLON.Color3(1.0, 0.84, 0.0); // Gold tint
+                pbrMat.reflectivityColor = new BABYLON.Color3(1.0, 0.9, 0.5); // Gold reflections
             }
         }
 

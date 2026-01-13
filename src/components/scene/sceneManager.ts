@@ -80,17 +80,23 @@ export function createCamera(
     const savedAlpha = localStorage.getItem("camera_alpha");
     const savedBeta = localStorage.getItem("camera_beta");
     const savedRadius = localStorage.getItem("camera_radius");
+    const savedTargetX = localStorage.getItem("camera_target_x");
+    const savedTargetY = localStorage.getItem("camera_target_y");
+    const savedTargetZ = localStorage.getItem("camera_target_z");
 
     const startAlpha = savedAlpha ? parseFloat(savedAlpha) : Math.PI / 2;
     const startBeta = savedBeta ? parseFloat(savedBeta) : Math.PI / 2.5;
     const startRadius = savedRadius ? parseFloat(savedRadius) : 200;
+    const startTargetX = savedTargetX ? parseFloat(savedTargetX) : 0;
+    const startTargetY = savedTargetY ? parseFloat(savedTargetY) : 8;
+    const startTargetZ = savedTargetZ ? parseFloat(savedTargetZ) : 0;
 
     const camera = new BABYLON.ArcRotateCamera(
         "camera",
         startAlpha,
         startBeta,
         startRadius, // Radius increased to see more road (was 120)
-        new BABYLON.Vector3(0, 8, 0),
+        new BABYLON.Vector3(startTargetX, startTargetY, startTargetZ),
         scene
     );
     // 35mm Lens equivalent

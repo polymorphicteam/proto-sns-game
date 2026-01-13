@@ -28,19 +28,18 @@ export const LoadingScreen: React.FC = () => {
                     alt="Game Instructions"
                     className="intro-image"
                 />
-                <div className="loading-indicator">
-                    {isLoading ? (
-                        <>
-                            <div className="loading-spinner"></div>
-                            <div className="loading-text">Loading...</div>
-                        </>
-                    ) : (
-                        <button className="start-button" onClick={handleStart}>
-                            TAP TO START
-                        </button>
-                    )}
-                </div>
+                {isLoading && (
+                    <div className="loading-indicator">
+                        <div className="loading-spinner"></div>
+                        <div className="loading-text">Loading...</div>
+                    </div>
+                )}
             </div>
+            {/* Invisible button covering the TAP TO START area at the bottom */}
+            {!isLoading && (
+                <button className="start-button" onClick={handleStart} aria-label="Tap to Start">
+                </button>
+            )}
         </div>
     );
 };

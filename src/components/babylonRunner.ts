@@ -17,6 +17,7 @@ import { setupPlayerController } from "./player/playerController";
 import { setupEnvironment } from "./world/environment";
 import { createUIManager } from "./ui/uiManager";
 import { useGameStore } from "../store/gameStore";
+import { createVictoryEffects } from "./vfx/victoryEffects";
 
 // Draco configuration
 if (BABYLON.DracoCompression) {
@@ -108,24 +109,17 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   // --------------------------------------------
   // VICTORY CELEBRATION VFX
   // --------------------------------------------
-  import("./player/celebrationVFX").then(({ createCelebrationVFX }) => {
-    let celebrationDispose: (() => void) | null = null;
+  const victoryVFX = createVictoryEffects(scene);
 
-    useGameStore.subscribe((state) => {
-      if (state.gameState === 'victory' && !celebrationDispose) {
-        // Trigger fireworks and confetti!
-        const { dispose } = createCelebrationVFX(scene, camera, {
-          duration: 10,
-          fireworkCount: 8,
-        });
-        celebrationDispose = dispose;
-        console.log("🎆 Victory celebration triggered!");
-      } else if (state.gameState !== 'victory' && celebrationDispose) {
-        // Clean up on game reset
-        celebrationDispose();
-        celebrationDispose = null;
-      }
-    });
+  useGameStore.subscribe((state, prevState) => {
+    // Trigger victory effects when game state changes to victory
+    if (state.gameState === 'victory' && !victoryVFX.isActive) {
+      console.log("🎆 Victory celebration triggered!");
+      victoryVFX.startVictory();
+    } else if (state.gameState !== 'victory' && victoryVFX.isActive) {
+      // Clean up on game reset
+      victoryVFX.stopVictory();
+    }
   });
 
 
@@ -144,8 +138,18 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
 
   function checkAllReady() {
     if (playerReady && obstaclesReady) {
-      console.log("✅ All assets loaded - hiding loading screen");
+      console.log("✅ All assets loaded - ready to start when user taps");
       useGameStore.getState().setLoading(false);
+    }
+  }
+
+  // Start countdown only when intro screen is dismissed (user taps TAP TO START)
+  let countdownStarted = false;
+  const unsubscribeIntro = useGameStore.subscribe((state) => {
+    // Only start countdown once when intro screen is dismissed AND not loading
+    if (!state.showIntroScreen && !state.isLoading && !countdownStarted) {
+      countdownStarted = true;
+      console.log("🎬 User tapped start - beginning countdown");
 
       // Start visual countdown sequence: 3, 2, 1, GO!
       const sequence = [3, 2, 1, 0]; // 0 = "GO!"
@@ -171,7 +175,7 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
 
       tick();
     }
-  }
+  });
 
   // --------------------------------------------
   // ENVIRONMENT
@@ -243,10 +247,11 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
 
   window.addEventListener("keydown", (ev) => {
     keysPressed[ev.key] = true;
-    onKeyDown(ev);
 
-    // Camera Capture Hotkey (Shift + C)
-    if (ev.shiftKey && (ev.key === "c" || ev.key === "C")) {
+    // Camera Capture Hotkey (Shift + C) - Check FIRST before player input
+    if (ev.shiftKey && ev.code === "KeyC") {
+      ev.preventDefault();
+      ev.stopPropagation();
       console.log("📸 CAMERA CAPTURE (Saving to LocalStorage)...");
 
       // Save Orbit details
@@ -254,63 +259,30 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
       localStorage.setItem("camera_beta", camera.beta.toString());
       localStorage.setItem("camera_radius", camera.radius.toString());
 
-      // Save Target Offset (Panning)
-      // The camera target (player.cameraTarget) tracks the player.
-      // We want to save the OFFSET of the target relative to the player's root.
-      // This allows the "Pan" to be preserved relative to the character.
-      if (player && player.cameraTarget) {
-        // We can't access playerRoot directly here easily unless exposed, 
-        // BUT we know player.cameraTarget is the tracking node.
-        // Wait, we need the player position to compute the offset?
-        // Actually, playerController maintains the cameraTarget. 
-        // The best way is to assume the player is at the center of the screen initially?
-        // No, player moves.
-        // Let's rely on cameraTarget.position vs playerRoot.
-        // Since we don't have direct access to playerRoot here, let's just save the
-        // cameraTarget position assuming the player is at a known state? 
-        // OR, assume the user usually sets this up at the START (Idle).
-        // If Idle, player is roughly at (0, 0, 0) relative to world start?
-        // A better way: 'player' controller could expose a 'saveCameraOffset()' method?
-        // Or simpler: We just accept that we save the *current* target position 
-        // relative to the *current* cameraTarget (which is tracking player).
+      // Also save target position for panning
+      localStorage.setItem("camera_target_x", camera.target.x.toString());
+      localStorage.setItem("camera_target_y", camera.target.y.toString());
+      localStorage.setItem("camera_target_z", camera.target.z.toString());
 
-        // Let's assume we want to save the *visual framing*. 
-        // If I pan UP, cameraTarget.y increases relative to player.
-        // We need to ask the player controller for the offset.
-        // But I can't change the interface easily right now without more files.
+      // Save FOV
+      localStorage.setItem("camera_fov", camera.fov.toString());
 
-        // Workaround: We know `camera.target` is the `cameraTarget` node.
-        // If we assume the player IS at `cameraTarget` minus the manual offset...
-        // We tracked the manual offset by ADDING to cameraTarget.
-        // So... we don't know the original player pos here.
+      const msg = `✅ Camera Saved to LocalStorage!
 
-        // Let's just save the alpha/beta/radius for now, which is 90% of the request.
-        // AND, let's try to save the raw target position if available?
-        // No, raw position is useless if player moves.
+Alpha: ${camera.alpha.toFixed(2)} rad
+Beta: ${camera.beta.toFixed(2)} rad
+Radius: ${camera.radius.toFixed(2)}
+FOV: ${camera.fov.toFixed(2)} rad (${(camera.fov * 180 / Math.PI).toFixed(1)}°)
+Target: (${camera.target.x.toFixed(1)}, ${camera.target.y.toFixed(1)}, ${camera.target.z.toFixed(1)})
 
-        // Okay, I will implement a 'saveCameraState' on the player controller later if needed.
-        // For now, let's just save Orbit.
-        // wait, the user specifically asked for PANNING translation to work.
-        // "Not orbiting but translating".
-        // So saving the translation is critical.
+Refresh to see it applied.`;
 
-        // I will access the internal metadata of player if possible? 
-        // or just hack it: `(player as any).getPlayerPosition()`? 
-        // No, that's messy.
-
-        // Let's just log "Saved Orbit" for now and tell the user, 
-        // BUT I will modify playerController to handle the offset saving if I can.
-        // actually, `player.cameraTarget` IS exposed now. 
-        // I can define an arbitrary `player.playerRoot` if I exposed it? No.
-
-        // Let's just alert the user "Saved Camera Angle & Zoom".
-        alert("✅ Camera Angle & Zoom Saved to LocalStorage!\nRefresh to see it applied.");
-      } else {
-        alert("✅ Camera Angle & Zoom Saved to LocalStorage!");
-      }
-
-      console.log(`Saved: Alpha=${camera.alpha}, Beta=${camera.beta}, Radius=${camera.radius}`);
+      console.log(msg);
+      alert(msg);
+      return; // Don't pass to player controller
     }
+
+    onKeyDown(ev);
   });
 
   window.addEventListener("keyup", (ev) => {

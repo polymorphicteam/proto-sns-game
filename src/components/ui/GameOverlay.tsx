@@ -96,8 +96,8 @@ export const GameOverlay: React.FC = () => {
                     <button
                         className="reset-button"
                         onClick={() => {
-                            // Dispatch R key event to trigger full restart in playerController
-                            window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', key: 'r' }));
+                            // Hard reload the page
+                            window.location.reload();
                         }}
                         style={{
                             marginTop: '20px',
@@ -121,14 +121,15 @@ export const GameOverlay: React.FC = () => {
             {/* Victory Screen - Conditional */}
             {gameState === 'victory' && (
                 <div className="victory-overlay">
-                    <div className="victory-text">🎉 VICTORY! 🎉</div>
+                    <div className="victory-text">VICTORY!</div>
                     <div className="victory-subtext">
                         You survived with {coinCount} coins!
                     </div>
                     <button
                         className="reset-button victory-button"
                         onClick={() => {
-                            window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', key: 'r' }));
+                            // Hard reload the page
+                            window.location.reload();
                         }}
                         style={{
                             marginTop: '20px',
