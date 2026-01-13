@@ -18,13 +18,13 @@ export function createRoadsideCars(
     shadowGenerator: BABYLON.ShadowGenerator,
     getScrollSpeed: () => number
 ): RoadsideCarsController {
-    // Configuration
-    const SPAWN_Z = -800;        // Where cars spawn (far ahead)
-    const DESPAWN_Z = 150;       // Where cars despawn (behind player)
-    const LEFT_X = -120;         // Moved out for 7-lane road (was -45)
-    const RIGHT_X = 120;         // Moved out for 7-lane road (was 45)
-    const MIN_SPACING = 150;     // Minimum Z spacing between cars
-    const MAX_SPACING = 350;     // Maximum Z spacing between cars
+    // Configuration - OPTIMIZED
+    const SPAWN_Z = -600;        // Reduced spawn distance (was -800)
+    const DESPAWN_Z = 100;       // Tighter despawn (was 150)
+    const LEFT_X = -50;          // Road edge position
+    const RIGHT_X = 50;          // Road edge position
+    const MIN_SPACING = 200;     // Increased spacing = fewer cars (was 150)
+    const MAX_SPACING = 400;     // Increased spacing (was 350)
     const CAR_Y = -5;            // Lower to road surface (model origin offset)
 
     const root = new BABYLON.TransformNode("roadside_cars_root", scene);

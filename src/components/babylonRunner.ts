@@ -124,11 +124,24 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
 
 
   // --------------------------------------------
+  // DYNAMIC DIFFICULTY (1.0 to 1.5 multiplier)
+  // --------------------------------------------
+  const getDifficultyMultiplier = () => {
+    const store = useGameStore.getState();
+    const total = Math.max(1, store.matchDuration);
+    const elapsed = total - store.matchTimeRemaining;
+
+    // Linearly scale from 1.0 to 1.5 over the match duration
+    const progress = Math.min(1.0, elapsed / total);
+    return 1.0 + (progress * 0.5);
+  };
+
+  // --------------------------------------------
   // SCROLL SPEED SIGNAL
   // --------------------------------------------
   let currentScrollSpeed = 0;
   const setScrollSpeed = (s: number) => (currentScrollSpeed = s);
-  const getScrollSpeed = () => currentScrollSpeed;
+  const getScrollSpeed = () => currentScrollSpeed * getDifficultyMultiplier();
 
   // --------------------------------------------
   // LOADING STATE TRACKING

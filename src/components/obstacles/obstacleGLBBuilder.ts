@@ -99,9 +99,16 @@ export class ObstacleGLBBuilder {
         mesh.position.setAll(0);
 
         // Apply type-specific scaling
-        // Duck obstacles (pipe) need to be larger so players can slide through
         if (type === "duck") {
             mesh.scaling.setAll(1.5);
+        }
+
+        // --- SPECIFIC SCALING FOR FRIES ---
+        if (sourceUrl.toLowerCase().includes("fries")) {
+            mesh.scaling.setAll(1.2); // Fries need a bit of a boost
+            console.log(`🍟 Spawned FRIES: ${sourceUrl}`);
+        } else if (sourceUrl.toLowerCase().includes("soda")) {
+            console.log(`🥤 Spawned SODA: ${sourceUrl}`);
         }
 
         // Rotate insuperable obstacles (Soda) on Z-axis so logo is visible

@@ -45,22 +45,28 @@ const PATTERN_VARIETY: ObstaclePattern = [
         coins: [{ laneIndex: 0, count: 3, spacing: 8 }],
         delayNext: 1.2
     },
-    // Pipe duck right
+    // Bus platform right (VARIETY)
     {
-        obstacles: [{ type: DUCK, laneIndex: 1 }],
-        coins: [{ laneIndex: 1, count: 3, spacing: 8 }],
+        obstacles: [{ type: PLAT, laneIndex: 1 }],
+        coins: [{ laneIndex: 1, yOffset: 15, count: 4, spacing: 10 }],
+        delayNext: 2.0
+    },
+    // Pipe duck center
+    {
+        obstacles: [{ type: DUCK, laneIndex: 0 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8 }],
         delayNext: 1.3
     },
-    // Bus platform center
+    // Bus platform left (VARIETY)
     {
-        obstacles: [{ type: PLAT, laneIndex: 0 }],
-        coins: [{ laneIndex: 0, yOffset: 15, count: 4, spacing: 10 }],
+        obstacles: [{ type: PLAT, laneIndex: -1 }],
+        coins: [{ laneIndex: -1, yOffset: 15, count: 4, spacing: 10 }],
         delayNext: 2.0
     },
     // Breathe
     {
         obstacles: [],
-        coins: [{ laneIndex: -1, count: 5, spacing: 6 }],
+        coins: [{ laneIndex: 1, count: 5, spacing: 6 }],
         delayNext: 1.0
     }
 ];
@@ -169,11 +175,29 @@ const PATTERN_WALLS: ObstaclePattern = [
 
 // 5. PLATFORM MIX - Bus with other obstacles
 const PATTERN_PLATFORM: ObstaclePattern = [
-    // Burger first
+    // Bus platform left
     {
-        obstacles: [{ type: JUMP, laneIndex: -1 }],
-        coins: [{ laneIndex: -1, count: 3, spacing: 8, yOffset: 8 }],
+        obstacles: [{ type: PLAT, laneIndex: -1 }],
+        coins: [{ laneIndex: -1, yOffset: 15, count: 5, spacing: 10 }],
+        delayNext: 2.2
+    },
+    // Burger center
+    {
+        obstacles: [{ type: JUMP, laneIndex: 0 }],
+        coins: [{ laneIndex: 0, count: 3, spacing: 8, yOffset: 8 }],
         delayNext: 1.5
+    },
+    // Bus platform right
+    {
+        obstacles: [{ type: PLAT, laneIndex: 1 }],
+        coins: [{ laneIndex: 1, yOffset: 15, count: 5, spacing: 10 }],
+        delayNext: 2.2
+    },
+    // Fries wall
+    {
+        obstacles: [{ type: WALL, laneIndex: -1 }],
+        coins: [{ laneIndex: 1, count: 3, spacing: 8 }],
+        delayNext: 1.2
     },
     // Bus platform center
     {
@@ -181,22 +205,10 @@ const PATTERN_PLATFORM: ObstaclePattern = [
         coins: [{ laneIndex: 0, yOffset: 15, count: 5, spacing: 10 }],
         delayNext: 2.2
     },
-    // Fries wall
-    {
-        obstacles: [{ type: WALL, laneIndex: 1 }],
-        coins: [{ laneIndex: 0, count: 3, spacing: 8 }],
-        delayNext: 1.2
-    },
-    // Pipe duck
-    {
-        obstacles: [{ type: DUCK, laneIndex: -1 }],
-        coins: [{ laneIndex: -1, count: 3, spacing: 8 }],
-        delayNext: 1.3
-    },
     // Breathe
     {
         obstacles: [],
-        coins: [{ laneIndex: 1, count: 5, spacing: 6 }],
+        coins: [{ laneIndex: -1, count: 5, spacing: 6 }],
         delayNext: 1.0
     }
 ];

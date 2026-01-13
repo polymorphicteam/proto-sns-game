@@ -201,6 +201,14 @@ export function createObstacleSystem(
   const PLAT_COST = 1.8;
   const LANE_COST = 0.4;
 
+  const getDifficultyMultiplier = () => {
+    const store = useGameStore.getState();
+    const total = Math.max(1, store.matchDuration);
+    const elapsed = total - store.matchTimeRemaining;
+    const progress = Math.min(1.0, elapsed / total);
+    return 1.0 + (progress * 0.5); // 1.0 to 1.5
+  };
+
   let spawnTimer = 1.0;
   let currentPattern: ObstaclePattern = ALL_PATTERNS[0];
   let currentPatternIndex = 0;
@@ -356,13 +364,13 @@ export function createObstacleSystem(
       requiredHumanTime   // Umano
     );
 
-    // Hard floor assoluto per evitare bug fisici
-    if (finalDelay < 0.6) finalDelay = 0.6;
+    // --- DIFFICULTY SCALING ---
+    // Multiply by speed and decrease delay
+    const difficulty = getDifficultyMultiplier();
+    finalDelay = finalDelay / difficulty;
 
-    // Debug "Safety Trigger" solo se stiamo rallentando molto il pattern
-    if (finalDelay > patternDelay + 0.3 && patternDelay > 0) {
-      // console.warn(`Delay spinto da ${patternDelay.toFixed(2)} a ${finalDelay.toFixed(2)} (LaneChange: ${!isSameLane})`);
-    }
+    // Hard floor assoluto per evitare bug fisici
+    if (finalDelay < 0.5) finalDelay = 0.5;
 
     nextSpawnDelay = finalDelay;
 
@@ -436,9 +444,9 @@ export function createObstacleSystem(
     for (const obs of activeObstacles) {
       if (!obs.active) continue;
 
-      // Surgical Lane Check (0.45 precision)
+      // Wider lane check - cover full lane width to guarantee no holes near obstacles
       const dx = Math.abs(x - obs.mesh.position.x);
-      if (dx >= laneWidth * 0.45) continue;
+      if (dx >= laneWidth) continue; // Check full lane width (was 0.45x)
 
       const obsZ = obs.mesh.position.z;
       let isLocked = false;

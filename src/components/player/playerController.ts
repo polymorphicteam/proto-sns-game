@@ -135,7 +135,7 @@ export function setupPlayerController(
     active: false,
     velocity: 0,
     gravity: -488,
-    jumpStrength: 163,
+    jumpStrength: 180, // Increased from 163 for easier clearing
   };
 
   function startJumpMotion() {
@@ -470,6 +470,22 @@ export function setupPlayerController(
     jumpMotion.velocity = 0;
     invulnerabilityTimer = INVULNERABILITY_AFTER_HIT;
     stateMachine.setPlayerState("Fall", true);
+
+    // ------------------------------------------
+    // REPAIR ROAD AROUND PLAYER (Give running room on respawn)
+    // ------------------------------------------
+    if (fallingCubeRoadController && playerRoot) {
+      // Fill gaps at player position and ahead of them
+      for (let zOffset = 0; zOffset >= -60; zOffset -= 15) {
+        for (let xOffset = -15; xOffset <= 15; xOffset += 15) {
+          fallingCubeRoadController.fillGapAt(
+            playerRoot.position.x + xOffset,
+            playerRoot.position.z + zOffset
+          );
+        }
+      }
+      console.log("🩹 Repaired road around player for safe respawn");
+    }
 
     // ------------------------------------------
     // SAVED OFFSET FOR CAMERA (Prevent overhead snap)
@@ -909,7 +925,8 @@ export function setupPlayerController(
           if (hitObstacle) triggerFallState(hitObstacle);
 
           // Check for falling into gaps (falling cube road)
-          if (fallingCubeRoadController && !jumpMotion.active) {
+          // SKIP if invulnerable (respawn protection)
+          if (fallingCubeRoadController && !jumpMotion.active && invulnerabilityTimer <= 0) {
             const isOverGap = fallingCubeRoadController.isOverGap(
               playerRoot.position.x,
               playerRoot.position.z

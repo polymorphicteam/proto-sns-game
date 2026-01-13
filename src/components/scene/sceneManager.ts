@@ -107,10 +107,19 @@ export function createCamera(
     camera.fov = startFov;
 
     // Enable camera orbit controls for debugging
-    // attachControl(canvas, noPreventDefault, useCtrlForPanning)
-    // Setting useCtrlForPanning to false enables Right-Click panning by default
-    // Enable camera orbit controls for debugging
-    camera.attachControl(canvas, true);
+    // Check for debug mode in URL to allow camera controls
+    const urlParams = new URLSearchParams(window.location.search);
+    const isDebugMode = urlParams.get('debug') === 'true';
+
+    if (isDebugMode) {
+        // Enable camera orbit controls ONLY in debug mode
+        camera.attachControl(canvas, true);
+        console.log("📷 Camera controls ENABLED (Debug Mode)");
+    } else {
+        // DISALLOW manual camera movement in normal play
+        // camera.attachControl(canvas, true);
+        console.log("📷 Camera controls LOCKED (Normal Mode)");
+    }
 
     // Explicitly configure mouse input for Right-Click Panning
     // We cast to any to avoid TypeScript errors with specific input properties

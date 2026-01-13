@@ -3,41 +3,40 @@ import * as BABYLON from "@babylonjs/core";
 import { useGameStore } from "../../store/gameStore";
 
 // ============================================================
-// CONFIGURATION
+// CONFIGURATION - OPTIMIZED FOR PERFORMANCE
 // ============================================================
 const CONFIG = {
-    // Grid dimensions - 14 wide × 84 long × 1 segment (smaller, denser cubes)
-    cubesWide: 14,   // 14 * 12 = 168 units wide
-    cubesLong: 84,   // 84 * 12 = 1008 units long
-    cubeSize: 12,
+    // Grid dimensions - OPTIMIZED: Fewer, larger cubes
+    cubesWide: 10,   // Reduced from 14 (10 * 15 = 150 units wide)
+    cubesLong: 56,   // Reduced from 84 (56 * 15 = 840 units long)
+    cubeSize: 15,    // Larger cubes (was 12)
 
     // Extra cubes at start to fill gap near buildings
-    extraStartRows: 6, // 6 extra rows at positive Z
+    extraStartRows: 4, // Reduced from 6
 
     // Total road dimensions
-    get roadWidth() { return this.cubesWide * this.cubeSize; }, // 175
-    get roadLength() { return this.cubesLong * this.cubeSize; }, // 1050
+    get roadWidth() { return this.cubesWide * this.cubeSize; },
+    get roadLength() { return this.cubesLong * this.cubeSize; },
 
-    // Number of road segments
-    segmentCount: 3,
+    // Number of road segments - OPTIMIZED: Reduced from 3 to 2
+    segmentCount: 2,
 
     // Falling physics
-    fallGravity: 2500, // Very fast gravity (was 800)
-    fallMaxSpeed: 4000, // Higher terminal velocity (was 1000)
+    fallGravity: 2500, // Very fast gravity
+    fallMaxSpeed: 4000, // Higher terminal velocity
 
     // Trigger zone (relative to player Z position)
-    triggerZoneStart: -80, // Start checking cubes this far behind player
-    triggerZoneEnd: -200,  // Stop checking cubes this far ahead
+    triggerZoneStart: -80,
+    triggerZoneEnd: -200,
 
     // Fall probability per frame when in trigger zone
-    // Very low probability for fewer, clustered holes
     fallProbabilityPerSecond: 0.15,
 
     // Maximum adjacent missing cubes (controls gap size)
-    maxAdjacentGaps: 1,  // Only single cube holes, no strips
+    maxAdjacentGaps: 1,
 
     // Cube appearance
-    cubeColor: new BABYLON.Color3(0.15, 0.15, 0.2), // Dark road color
+    cubeColor: new BABYLON.Color3(0.15, 0.15, 0.2),
     cubeRoughness: 0.8,
 };
 
@@ -275,8 +274,8 @@ export function createFallingCubeRoad(
             rowMap.get(key)!.set(cube.gridX, cube);
         }
 
-        // Start at center lane (Index 7 for width 14)
-        let currentLane = 7;
+        // Start at center lane (Index 5 for width 10)
+        let currentLane = 5;
 
         for (let seg = 0; seg < CONFIG.segmentCount; seg++) {
             for (let z = 0; z < cubesLong; z++) {
@@ -294,9 +293,9 @@ export function createFallingCubeRoad(
                 const dir = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
                 let nextLane = currentLane + dir;
 
-                // Clamp to inner lanes (2-11)
-                if (nextLane < 2) nextLane = 2;
-                if (nextLane > 11) nextLane = 11;
+                // Clamp to inner lanes (1-8 for width 10)
+                if (nextLane < 1) nextLane = 1;
+                if (nextLane > 8) nextLane = 8;
 
                 currentLane = nextLane;
             }
@@ -377,17 +376,16 @@ export function createFallingCubeRoad(
             // ----------------------------------------------------------
 
             // Thresholds
-            const rearFallZ = CONFIG.cubeSize * 1.5; // Start falling closer to player
+            const rearFallZ = CONFIG.cubeSize * 0.5; // Start falling immediately behind player (was 1.5)
             // Limit to ~3 rows falling behind the player before recycling
-            // rearFallZ (1.5) + 3 rows (3.0) = 4.5
             const recycleZ = CONFIG.cubeSize * 4.5;
 
-            // A) Trigger Fall Behind Player - TRIANGULAR PATTERN
-            // Cubes in center fall first, edges fall later (creates V-shape)
-            const centerX = 6.5; // Center lane index (0-13)
+            // A) Trigger Fall Behind Player - AGGRESSIVE FALLING
+            // All cubes fall quickly once behind, minimal delay
+            const centerX = 4.5; // Center lane index (0-9 for width 10)
             const distFromCenter = Math.abs(cube.gridX - centerX);
-            const triangleDelay = distFromCenter * 8; // More delay for edge cubes (reduced for wider grid)
-            const triggerZ = rearFallZ + triangleDelay + (cube.randomFallOffset || 0);
+            const triangleDelay = distFromCenter * 2; // Much smaller delay (was 8)
+            const triggerZ = rearFallZ + triangleDelay; // Removed random offset for consistent falling
 
             // [DEBUG] FALLING ENABLED
             const DEBUG_DISABLE_HOLES = false;
@@ -449,8 +447,12 @@ export function createFallingCubeRoad(
                 if (cubeZ > CONFIG.triggerZoneEnd && cubeZ < CONFIG.triggerZoneStart) {
                     // Random chance to fall
                     // DIFFICULTY SCALING: Increase probability over time
-                    const timeSinceStart = performance.now() / 1000;
-                    const difficultyMult = Math.min(3.0, 1.0 + (timeSinceStart / 50));
+                    // DIFFICULTY MULTIPLIER (based on match timer)
+                    const store = useGameStore.getState();
+                    const totalMatch = Math.max(1, store.matchDuration);
+                    const elapsedMatch = totalMatch - store.matchTimeRemaining;
+                    const progressMatch = Math.min(1.0, elapsedMatch / totalMatch);
+                    const difficultyMult = 1.0 + (progressMatch * 1.5); // 1.0 to 2.5 (more aggressive than speed)
 
                     const fallChance = CONFIG.fallProbabilityPerSecond * difficultyMult * dt;
                     if (Math.random() < fallChance) {
@@ -523,9 +525,9 @@ export function createFallingCubeRoad(
             }
         }
 
-        // 2. Never outside lanes (exclude 0-1 and 12-13)
-        // Allow columns 2-11 (Center 10)
-        if (cube.gridX < 2 || cube.gridX > 11) {
+        // 2. Never outside lanes (exclude 0 and 9 for width 10)
+        // Allow columns 1-8 (Center lanes)
+        if (cube.gridX < 1 || cube.gridX > 8) {
             return false;
         }
 
@@ -567,8 +569,8 @@ export function createFallingCubeRoad(
             }
         }
 
-        // 2. Lane boundaries
-        if (cube.gridX < 2 || cube.gridX > 11) {
+        // 2. Lane boundaries (1-8 for width 10)
+        if (cube.gridX < 1 || cube.gridX > 8) {
             return false;
         }
 
