@@ -25,6 +25,7 @@ export interface CoinController {
     dispose(): void;
     reset(): void;
     isReady(): boolean;
+    setObstacleChecker(checker: (x: number, z: number, radius: number) => boolean): void;
 }
 
 export function createCoinSystem(
@@ -46,6 +47,13 @@ export function createCoinSystem(
     let sourceContainer: BABYLON.AssetContainer | null = null;
     let isLoaded = false;
     const pendingSpawns: Array<{ laneIndex: number; yOffset: number; count: number; spacing: number }> = [];
+
+    // Obstacle checker function - will be set by environment.ts
+    let hasObstacleAt: ((x: number, z: number, radius: number) => boolean) | null = null;
+
+    function setObstacleChecker(checker: (x: number, z: number, radius: number) => boolean) {
+        hasObstacleAt = checker;
+    }
 
     // Load the Bitcoin GLB model using AssetContainer
     BABYLON.SceneLoader.LoadAssetContainerAsync(modelPath, "", scene).then((container) => {
@@ -88,8 +96,8 @@ export function createCoinSystem(
             node.parent = coinRoot;
         }
 
-        // Scale the coin appropriately
-        coinRoot.scaling = new BABYLON.Vector3(1, 1, 1);
+        // Scale the coin appropriately - make it larger and thicker (20% smaller from previous stable state)
+        coinRoot.scaling = new BABYLON.Vector3(0.75, 0.75, 1.5);
 
         // Add all child meshes as shadow casters and make them reflective
         const allMeshes = coinRoot.getChildMeshes(false);
@@ -104,9 +112,16 @@ export function createCoinSystem(
                 mesh.material = pbrMat;
 
                 pbrMat.metallic = 1.0;           // Fully metallic
-                pbrMat.roughness = 0.1;          // Very smooth for mirror-like reflections
+                pbrMat.roughness = 0.05;         // Even smoother for better highlights
                 pbrMat.albedoColor = new BABYLON.Color3(1.0, 0.84, 0.0); // Gold tint
                 pbrMat.reflectivityColor = new BABYLON.Color3(1.0, 0.9, 0.5); // Gold reflections
+
+                // Add emissive glow to make it "pop" and look less dull - Slightly reduced for better balance
+                pbrMat.emissiveColor = new BABYLON.Color3(0.4, 0.3, 0.05);
+                pbrMat.emissiveIntensity = 0.8;
+
+                // Increase environment intensity specifically for coins to make them shine - Toned down
+                pbrMat.environmentIntensity = 1.2;
             }
         }
 
@@ -144,13 +159,22 @@ export function createCoinSystem(
     function spawnCoinInternal(laneIndex: number, yOffset: number, count: number = 1, spacing: number = 10) {
         const xPos = laneIndex * laneWidth;
         const baseY = 5;
+        const coinCheckRadius = 15; // Radius to check for obstacle collision
 
         for (let i = 0; i < count; i++) {
+            const zOffset = i * spacing;
+            const coinZ = spawnZ + zOffset;
+
+            // Skip this coin if it would intersect an obstacle
+            if (hasObstacleAt && hasObstacleAt(xPos, coinZ, coinCheckRadius)) {
+                console.log(`🪙 Skipped coin at (${xPos}, ${coinZ}) - obstacle intersection`);
+                continue;
+            }
+
             const coin = acquire();
             if (!coin) continue;
 
-            const zOffset = i * spacing;
-            coin.mesh.position.set(xPos, baseY + yOffset, spawnZ + zOffset);
+            coin.mesh.position.set(xPos, baseY + yOffset, coinZ);
             activeCoins.push(coin);
         }
     }
@@ -256,5 +280,5 @@ export function createCoinSystem(
         console.log("Coin system reset");
     }
 
-    return { spawnCoin, update, checkCollisions, dispose, reset, isReady: () => isLoaded };
+    return { spawnCoin, update, checkCollisions, dispose, reset, isReady: () => isLoaded, setObstacleChecker };
 }

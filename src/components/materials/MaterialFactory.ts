@@ -207,6 +207,24 @@ export function applyUnifiedMaterialToGLBMesh(
             mat.metallic = MATERIAL_CONFIGS.obstacleGLB.metallic;
             mat.roughness = MATERIAL_CONFIGS.obstacleGLB.roughness;
         }
+
+        // --- DRINK (SODA) BOOST ---
+        // If it's a soda can, make it extra vibrant and metallic
+        const isDrink = mesh.name.toLowerCase().includes("soda") ||
+            mesh.name.toLowerCase().includes("can") ||
+            (mesh.parent && mesh.parent.name.toLowerCase().includes("soda"));
+
+        if (isDrink) {
+            mat.metallic = 0.8;          // Metallic but not extreme
+            mat.roughness = 0.15;        // Smooth but visible
+            mat.environmentIntensity = 1.8; // Good reflection boost
+
+            // Safe emissive glow - don't remap textures
+            mat.emissiveColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+            mat.emissiveIntensity = 0.8;
+
+            console.log(`✨ Brightened drink material for: ${mesh.name}`);
+        }
         // Keep ALL other textures as-is (albedo, normal, emissive, metallic-roughness, reflectance, etc.)
         return;
     }

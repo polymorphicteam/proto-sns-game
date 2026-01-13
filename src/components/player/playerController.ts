@@ -559,11 +559,27 @@ export function setupPlayerController(
       // Override camera target to our controlled node
       camera.lockedTarget = cameraTarget;
 
-      // Sync initial position (with framing offset)
-      cameraTarget.position.copyFrom(playerRoot.position);
-      // User request: "Move the camera position down" -> Move TARGET DOWN to shift view UP.
-      // -15 units provides more space below to see falling cubes.
-      cameraTarget.position.y -= 15;
+      // Sync initial position (with saved or default framing offset)
+      // If we have a saved target, use it relative to the player's starting Z/X
+      const savedTargetX = localStorage.getItem("camera_target_x");
+      const savedTargetY = localStorage.getItem("camera_target_y");
+      const savedTargetZ = localStorage.getItem("camera_target_z");
+
+      if (savedTargetX !== null && savedTargetY !== null && savedTargetZ !== null) {
+        cameraTarget.position.set(
+          parseFloat(savedTargetX),
+          parseFloat(savedTargetY),
+          parseFloat(savedTargetZ)
+        );
+        console.log("📷 Camera target initialized from LocalStorage");
+      } else {
+        // Fallback to default framing: Sync initial position (with framing offset)
+        cameraTarget.position.copyFrom(playerRoot.position);
+        // User request: "Move the camera position down" -> Move TARGET DOWN to shift view UP.
+        // -15 units provides more space below to see falling cubes.
+        cameraTarget.position.y -= 15;
+        console.log("📷 Camera target initialized with default offset (-15)");
+      }
 
       const { min: worldMin, max: worldMax } =
         info.playerRoot.getHierarchyBoundingVectors();

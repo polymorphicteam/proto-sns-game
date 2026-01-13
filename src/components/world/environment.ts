@@ -99,6 +99,13 @@ export function setupEnvironment(
   });
 
   // ------------------------------------------------------
+  // 6.6) LINK COINS TO OBSTACLES (Prevent coin-obstacle intersection)
+  // ------------------------------------------------------
+  coinController.setObstacleChecker((x, z, radius) => {
+    return obstacleController.hasObstacleAt(x, z, radius);
+  });
+
+  // ------------------------------------------------------
   // 7) DISPOSE removes world + scroll observers
   // ------------------------------------------------------
   function dispose() {

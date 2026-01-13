@@ -1,5 +1,6 @@
 // src/components/scene/sceneManager.ts
 import * as BABYLON from "@babylonjs/core";
+import { CAMERA_DEFAULTS } from "../../config/cameraDefaults";
 
 // -----------------------------------------------------------------------------
 // SCENE SETUP
@@ -83,13 +84,16 @@ export function createCamera(
     const savedTargetX = localStorage.getItem("camera_target_x");
     const savedTargetY = localStorage.getItem("camera_target_y");
     const savedTargetZ = localStorage.getItem("camera_target_z");
+    const savedFov = localStorage.getItem("camera_fov");
 
-    const startAlpha = savedAlpha ? parseFloat(savedAlpha) : Math.PI / 2;
-    const startBeta = savedBeta ? parseFloat(savedBeta) : Math.PI / 2.5;
-    const startRadius = savedRadius ? parseFloat(savedRadius) : 200;
-    const startTargetX = savedTargetX ? parseFloat(savedTargetX) : 0;
-    const startTargetY = savedTargetY ? parseFloat(savedTargetY) : 8;
-    const startTargetZ = savedTargetZ ? parseFloat(savedTargetZ) : 0;
+    // Use config defaults when no localStorage data exists
+    const startAlpha = savedAlpha ? parseFloat(savedAlpha) : CAMERA_DEFAULTS.alpha;
+    const startBeta = savedBeta ? parseFloat(savedBeta) : CAMERA_DEFAULTS.beta;
+    const startRadius = savedRadius ? parseFloat(savedRadius) : CAMERA_DEFAULTS.radius;
+    const startTargetX = savedTargetX ? parseFloat(savedTargetX) : CAMERA_DEFAULTS.targetX;
+    const startTargetY = savedTargetY ? parseFloat(savedTargetY) : CAMERA_DEFAULTS.targetY;
+    const startTargetZ = savedTargetZ ? parseFloat(savedTargetZ) : CAMERA_DEFAULTS.targetZ;
+    const startFov = savedFov ? parseFloat(savedFov) : CAMERA_DEFAULTS.fov;
 
     const camera = new BABYLON.ArcRotateCamera(
         "camera",
@@ -99,10 +103,8 @@ export function createCamera(
         new BABYLON.Vector3(startTargetX, startTargetY, startTargetZ),
         scene
     );
-    // 35mm Lens equivalent
-    // Vertical FOV = 2 * atan(24mm / (2 * 35mm)) ~= 37.8 degrees ~= 0.66 radians
-    // Wider Lens (approx 14-15mm)
-    camera.fov = 1.5;
+    // Apply saved or default FOV
+    camera.fov = startFov;
 
     // Enable camera orbit controls for debugging
     // attachControl(canvas, noPreventDefault, useCtrlForPanning)
