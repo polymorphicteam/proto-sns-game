@@ -106,6 +106,16 @@ export class ObstacleGLBBuilder {
         // --- SPECIFIC SCALING FOR FRIES ---
         if (sourceUrl.toLowerCase().includes("fries")) {
             mesh.scaling.setAll(1.2); // Fries need a bit of a boost
+
+            // GLB files use rotationQuaternion - must clear it to use euler rotation
+            mesh.rotationQuaternion = null;
+            mesh.rotation.y = Math.PI; // Rotate 180 degrees to face player
+
+            // Also clear on all children (GLB hierarchy often has nested quaternions)
+            mesh.getChildMeshes(false).forEach(child => {
+                child.rotationQuaternion = null;
+            });
+
             console.log(`🍟 Spawned FRIES: ${sourceUrl}`);
         } else if (sourceUrl.toLowerCase().includes("soda")) {
             console.log(`🥤 Spawned SODA: ${sourceUrl}`);

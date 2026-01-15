@@ -268,10 +268,12 @@ export function createObstacleSystem(
       if (depth > maxDepthInStep) maxDepthInStep = depth;
 
       // Rotation
+      const isFries = source.toLowerCase().includes("fries");
       if (isCar && (obs.type === "insuperable" || obs.type === "platform")) {
         const isRightSide = def.laneIndex >= 0;
         obs.mesh.rotation.y = isRightSide ? Math.PI : 0;
-      } else {
+      } else if (!isFries) {
+        // Don't reset rotation for fries - it's set in GLBBuilder
         obs.mesh.rotation.y = 0;
       }
       activeObstacles.push(obs);

@@ -121,7 +121,7 @@ export const GameOverlay: React.FC = () => {
             {/* Victory Screen - Conditional */}
             {gameState === 'victory' && (
                 <div className="victory-overlay">
-                    <div className="victory-text">VICTORY!</div>
+                    {/* 3D VICTORY! text is rendered in Babylon.js scene */}
                     <div className="victory-subtext">
                         You survived with {coinCount} coins!
                     </div>

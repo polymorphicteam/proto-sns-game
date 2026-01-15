@@ -5,7 +5,9 @@
   "dependencies": {
     "@babylonjs/core": "^7.54.3",
     "@babylonjs/loaders": "^7.54.3",
+    "@types/earcut": "^3.0.0",
     "debug": "^2.6.9",
+    "earcut": "^3.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^5.0.8"

@@ -1,6 +1,7 @@
 // src/components/vfx/victoryEffects.ts
 import * as BABYLON from "@babylonjs/core";
 import { createWavingFlag, WavingFlag } from "./wavingFlag";
+import { createVictoryText3D, VictoryText3D } from "./victoryText3D";
 
 /**
  * Creates a spectacular fireworks, confetti, and waving flag effect for victory celebration
@@ -9,6 +10,7 @@ export function createVictoryEffects(scene: BABYLON.Scene) {
     const emitters: BABYLON.ParticleSystem[] = [];
     let isActive = false;
     let wavingFlag: WavingFlag | null = null;
+    let victoryText: VictoryText3D | null = null;
 
     // Confetti colors - bright and festive
     const confettiColors = [
@@ -198,6 +200,10 @@ export function createVictoryEffects(scene: BABYLON.Scene) {
         const confetti = createConfettiShower();
         confetti.start();
 
+        // Show 3D victory text
+        victoryText = createVictoryText3D(scene);
+        victoryText.show();
+
         // Launch fireworks at intervals
         let fireworkCount = 0;
         const maxFireworks = 20;
@@ -249,6 +255,10 @@ export function createVictoryEffects(scene: BABYLON.Scene) {
             wavingFlag = null;
         }
 
+        if (victoryText) {
+            victoryText.hide();
+        }
+
         for (const emitter of emitters) {
             emitter.stop();
             setTimeout(() => emitter.dispose(), 3000);
@@ -266,6 +276,11 @@ export function createVictoryEffects(scene: BABYLON.Scene) {
         if (wavingFlag) {
             wavingFlag.dispose();
             wavingFlag = null;
+        }
+
+        if (victoryText) {
+            victoryText.dispose();
+            victoryText = null;
         }
 
         for (const emitter of emitters) {
