@@ -323,7 +323,7 @@ export function createWorldSegments(
   // ---------------------------------------------
   // SIDEWALKS (Simple cubes to cover skydome gaps)
   // ---------------------------------------------
-  const sidewalkSegments: BABYLON.Mesh[] = [];
+  const sidewalkSegments: BABYLON.AbstractMesh[] = [];
   const sidewalkSpacing = 200; // Length of each sidewalk segment
   const sidewalkWidth = 100;   // Width of each sidewalk
   const sidewalkHeight = 5;    // Thickness
@@ -343,28 +343,31 @@ export function createWorldSegments(
 
   function createSidewalks() {
     const segmentCount = 8; // Enough to cover visible area
-    for (let i = 0; i < segmentCount; i++) {
-      // Left sidewalk
-      const leftSidewalk = BABYLON.MeshBuilder.CreateBox(
-        `sidewalk_left_${i}`,
-        { width: sidewalkWidth, height: sidewalkHeight, depth: sidewalkSpacing },
-        scene
-      );
-      leftSidewalk.material = sidewalkMat;
-      leftSidewalk.position.set(leftSidewalkX, sidewalkY, -i * sidewalkSpacing);
-      leftSidewalk.receiveShadows = true;
-      sidewalkSegments.push(leftSidewalk);
 
-      // Right sidewalk
-      const rightSidewalk = BABYLON.MeshBuilder.CreateBox(
-        `sidewalk_right_${i}`,
-        { width: sidewalkWidth, height: sidewalkHeight, depth: sidewalkSpacing },
-        scene
-      );
-      rightSidewalk.material = sidewalkMat;
-      rightSidewalk.position.set(rightSidewalkX, sidewalkY, -i * sidewalkSpacing);
-      rightSidewalk.receiveShadows = true;
-      sidewalkSegments.push(rightSidewalk);
+    // Create base mesh for instancing
+    const sidewalkBase = BABYLON.MeshBuilder.CreateBox(
+      "sidewalkBase",
+      { width: sidewalkWidth, height: sidewalkHeight, depth: sidewalkSpacing },
+      scene
+    );
+    sidewalkBase.material = sidewalkMat;
+    sidewalkBase.receiveShadows = true;
+    sidewalkBase.isVisible = false; // Hide base mesh
+
+    sidewalkMat.freeze(); // Optimize: Freeze static material
+
+    for (let i = 0; i < segmentCount; i++) {
+      // Left sidewalk instance
+      const leftInstance = sidewalkBase.createInstance(`sidewalk_left_${i}`);
+      leftInstance.position.set(leftSidewalkX, sidewalkY, -i * sidewalkSpacing);
+      leftInstance.checkCollisions = false; // Optim: collision handled elsewhere if needed
+      sidewalkSegments.push(leftInstance);
+
+      // Right sidewalk instance
+      const rightInstance = sidewalkBase.createInstance(`sidewalk_right_${i}`);
+      rightInstance.position.set(rightSidewalkX, sidewalkY, -i * sidewalkSpacing);
+      rightInstance.checkCollisions = false;
+      sidewalkSegments.push(rightInstance);
     }
   }
 
@@ -376,7 +379,7 @@ export function createWorldSegments(
   const treeRoots: BABYLON.TransformNode[] = [];
   const treeSpacing = 80;  // Base distance between trees
   const treeY = 3;         // Raise trees to sit on sidewalk
-  const treeScale = 39;    // Scale factor for the GLB model (30 * 1.3)
+  const treeScale = 51;    // Scale factor for the GLB model (39 * 1.3)
   let treeContainer: BABYLON.AssetContainer | null = null;
 
   // Position trees on the inner edge of sidewalks (near cars)
@@ -459,7 +462,7 @@ export function createWorldSegments(
   // ---------------------------------------------
   // YELLOW CENTER LINE MARKERS
   // ---------------------------------------------
-  const roadMarkers: BABYLON.Mesh[] = [];
+  const roadMarkers: BABYLON.AbstractMesh[] = [];
   const markerLength = 8;    // Length of each dash
   const markerGap = 12;      // Gap between dashes
   const markerWidth = 1.5;   // Width of the line
@@ -478,15 +481,23 @@ export function createWorldSegments(
     const totalDistance = 2000; // Cover a long stretch
     const numMarkers = Math.ceil(totalDistance / markerSpacing);
 
+    // Create base mesh for instancing
+    const markerBase = BABYLON.MeshBuilder.CreateBox(
+      "markerBase",
+      { width: markerWidth, height: markerHeight, depth: markerLength },
+      scene
+    );
+    markerBase.material = markerMat;
+    markerBase.receiveShadows = true;
+    markerBase.isVisible = false; // Hide base mesh
+
+    markerMat.freeze(); // Optimize: Freeze static material
+
     for (let i = 0; i < numMarkers; i++) {
-      const marker = BABYLON.MeshBuilder.CreateBox(
-        `roadMarker_${i}`,
-        { width: markerWidth, height: markerHeight, depth: markerLength },
-        scene
-      );
-      marker.material = markerMat;
+      const marker = markerBase.createInstance(`roadMarker_${i}`);
       marker.position.set(0, markerY, -i * markerSpacing);
-      marker.receiveShadows = true;
+      // Shadows for tiny road markers are expensive and barely visible, disable for instances
+      // marker.receiveShadows = false; 
       roadMarkers.push(marker);
     }
   }

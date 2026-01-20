@@ -91,14 +91,29 @@ export function createCoinSystem(
     initMaterials();
 
     function createCoinMesh(): BABYLON.AbstractMesh | null {
+        // We only create the source mesh ONCE
+        // If we already have coins in the pool, we can just return a new instance of the first one
+        if (coinPool.length > 0) {
+            const source = coinPool[0].mesh as BABYLON.Mesh;
+            // Create instance from source
+            const instance = source.createInstance(`coin_${coinPool.length}`);
+            instance.parent = root;
+            instance.checkCollisions = false; // Collision checked manually
+
+            // Shadows handled by source mesh usually, or we can add for instance but it's expensive
+            // shadowGenerator.addShadowCaster(instance); 
+
+            return instance;
+        }
+
         if (!coinFaceMaterial || !coinEdgeMaterial) return null;
 
-        // Create cylinder (coin shape)
+        // Create cylinder (coin shape) - SOURCE MESH
         const diameter = 7.5;  // Scaled 1.5x from 5
         const thickness = 1.2; // Scaled 1.5x from 0.8
 
         const coin = BABYLON.MeshBuilder.CreateCylinder(
-            `coin_${coinPool.length}`,
+            `coin_source`,
             {
                 diameter: diameter,
                 height: thickness,
@@ -119,7 +134,7 @@ export function createCoinSystem(
         coin.rotation.x = Math.PI / 2;
 
         // Apply multi-material for edge vs caps
-        const multiMat = new BABYLON.MultiMaterial(`coinMultiMat_${coinPool.length}`, scene);
+        const multiMat = new BABYLON.MultiMaterial(`coinMultiMat`, scene);
         multiMat.subMaterials.push(coinEdgeMaterial);  // Index 0: Edge
         multiMat.subMaterials.push(coinFaceMaterial);  // Index 1: Top cap
         multiMat.subMaterials.push(coinFaceMaterial);  // Index 2: Bottom cap
@@ -144,7 +159,9 @@ export function createCoinSystem(
         shadowGenerator.addShadowCaster(coin, true);
         coin.receiveShadows = true;
 
-        console.log(`🪙 Created procedural coin`);
+        // Hide source mesh initially? No, the first one is used as a pool item too.
+
+        console.log(`🪙 Created source coin mesh`);
 
         return coin;
     }
@@ -155,9 +172,12 @@ export function createCoinSystem(
             pooled.active = true;
             pooled.mesh.setEnabled(true);
             // Re-enable all child meshes
-            const children = (pooled.mesh as BABYLON.TransformNode).getChildMeshes?.(false);
-            if (children) {
-                children.forEach(m => m.setEnabled(true));
+            // Instances don't really have children in the same way, but just in case
+            if (pooled.mesh instanceof BABYLON.Mesh) {
+                const children = (pooled.mesh as BABYLON.Mesh).getChildMeshes?.(false);
+                if (children) {
+                    children.forEach(m => m.setEnabled(true));
+                }
             }
             return pooled;
         }

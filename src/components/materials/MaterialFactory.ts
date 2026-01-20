@@ -107,6 +107,7 @@ export function getGroundMaterial(scene: BABYLON.Scene): BABYLON.PBRMaterial {
     mat.roughness = MATERIAL_CONFIGS.ground.roughness;
 
     materialCache.set(key, mat);
+    mat.freeze(); // Optimize: freeze static material
     return mat;
 }
 
@@ -126,6 +127,7 @@ export function getCoinMaterial(scene: BABYLON.Scene): BABYLON.PBRMaterial {
     mat.roughness = MATERIAL_CONFIGS.coin.roughness;
 
     materialCache.set(key, mat);
+    mat.freeze(); // Optimize: freeze static material
     return mat;
 }
 
@@ -149,6 +151,7 @@ export function getObstacleMaterial(
     mat.roughness = MATERIAL_CONFIGS.obstacle.roughness;
 
     materialCache.set(key, mat);
+    mat.freeze(); // Optimize: freeze static material
     return mat;
 }
 
@@ -175,6 +178,7 @@ export function getBuildingMaterial(
     mat.roughness = MATERIAL_CONFIGS.building.roughness;
 
     materialCache.set(key, mat);
+    mat.freeze(); // Optimize: freeze static material
     return mat;
 }
 
@@ -296,6 +300,7 @@ export function getHamburgerMaterial(
     mat.roughness = MATERIAL_CONFIGS.hamburger.roughness;
 
     materialCache.set(key, mat);
+    mat.freeze(); // Optimize: freeze static material
     return mat;
 }
 
@@ -345,6 +350,12 @@ export function getLayeredRoadMaterial(scene: BABYLON.Scene): BABYLON.MultiMater
     const asphaltDirtSideMat = new BABYLON.PBRMaterial("asphaltDirtSideMat", scene);
     // Setting invertY to false because Babylon.js flips textures by default
     asphaltDirtSideMat.albedoTexture = new BABYLON.Texture("./scene/assets/road/asphalt_dirt_side.png", scene, false, false);
+
+    // Fix texture orientation: Reverting global rotation as it breaks some faces
+    // if (asphaltDirtSideMat.albedoTexture) {
+    //     const tex = asphaltDirtSideMat.albedoTexture as BABYLON.Texture;
+    //     tex.wAng = -Math.PI / 2;
+    // }
     asphaltDirtSideMat.metallic = 0.0;
     asphaltDirtSideMat.roughness = 0.9;
 
