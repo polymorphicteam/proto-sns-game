@@ -104,7 +104,7 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   // SKY DOME (Disabled)
   // --------------------------------------------
   const { skyDome } = createSkyDome(scene, assetBase);
-  skyDome.isVisible = false; // Permanently hidden
+  skyDome.isVisible = true;
 
   // --------------------------------------------
   // VICTORY CELEBRATION VFX

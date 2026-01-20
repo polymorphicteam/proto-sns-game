@@ -202,8 +202,13 @@ export function createSkyDome(scene: BABYLON.Scene, assetBase: string) {
     skyDome.isPickable = false;
     skyDome.infiniteDistance = true; // Sky stays at infinite distance
 
-    // Position sky dome at origin
-    skyDome.position = BABYLON.Vector3.Zero();
+    // Position sky dome slightly lower to bring the horizon down
+    skyDome.position.y = -500;
+
+    // Slowly rotate the sky dome for dynamic clouds
+    scene.onBeforeRenderObservable.add(() => {
+        skyDome.rotation.y += 0.0003 * scene.getAnimationRatio();
+    });
 
     return { skyDome, skyMaterial, cloudTexture };
 }
