@@ -447,6 +447,10 @@ export function setupPlayerController(
     // Trigger bounce-back effect with VFX ONLY if obstacle hit
     if (hitObstacle) {
       triggerBounceBack(hitObstacle);
+
+      // Make the obstacle disappear after collision
+      hitObstacle.active = false;
+      hitObstacle.mesh.setEnabled(false);
     }
     // Update game store - decrement lives
     const store = useGameStore.getState();

@@ -50,16 +50,20 @@ export function createLighting(scene: BABYLON.Scene) {
     directionalLight.position = new BABYLON.Vector3(20, 40, -30);
     directionalLight.intensity = 2.0; // Increased from 1.5 for higher contrast
 
-    // Configure shadow generator
-    const shadowGenerator = new BABYLON.ShadowGenerator(2048, directionalLight);
+    // Use Cascaded Shadow Maps for consistent shadows over long distances
+    const shadowGenerator = new BABYLON.CascadedShadowGenerator(2048, directionalLight);
+    shadowGenerator.numCascades = 4; // 4 cascades for smooth transitions
+    shadowGenerator.lambda = 0.9; // Blend factor between logarithmic and linear distribution
+    shadowGenerator.cascadeBlendPercentage = 0.1; // Smooth blending between cascades
+    shadowGenerator.stabilizeCascades = true; // Reduce shadow swimming/flickering
+    shadowGenerator.shadowMaxZ = 500; // Cover a larger area
+    shadowGenerator.autoCalcDepthBounds = true; // Auto-calculate depth bounds
+
+    // Shadow quality settings
     shadowGenerator.usePercentageCloserFiltering = true; // Softer shadows
     shadowGenerator.filteringQuality = BABYLON.ShadowGenerator.QUALITY_MEDIUM;
     shadowGenerator.bias = 0.001;
     shadowGenerator.normalBias = 0.02;
-
-    // Configure shadow frustum for better coverage
-    directionalLight.shadowMinZ = 1;
-    directionalLight.shadowMaxZ = 200;
 
     return {
         hemisphericLight,
