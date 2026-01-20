@@ -280,15 +280,32 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
       // Save FOV
       localStorage.setItem("camera_fov", camera.fov.toString());
 
+      // Generate cameraDefaults.ts code for clipboard
+      const cameraDefaultsCode = `export const CAMERA_DEFAULTS = {
+    alpha: ${camera.alpha.toFixed(2)},
+    beta: ${camera.beta.toFixed(2)},
+    radius: ${camera.radius.toFixed(2)},
+    targetX: ${camera.target.x.toFixed(1)},
+    targetY: ${camera.target.y.toFixed(1)},
+    targetZ: ${camera.target.z.toFixed(1)},
+    fov: ${camera.fov.toFixed(2)},
+};`;
+
+      // Copy to clipboard
+      navigator.clipboard.writeText(cameraDefaultsCode).then(() => {
+        console.log("📋 Camera defaults code copied to clipboard!");
+      }).catch(err => {
+        console.error("Failed to copy to clipboard:", err);
+      });
+
       const msg = `✅ Camera Saved to LocalStorage!
+📋 Code copied to clipboard - paste into cameraDefaults.ts!
 
 Alpha: ${camera.alpha.toFixed(2)} rad
 Beta: ${camera.beta.toFixed(2)} rad
 Radius: ${camera.radius.toFixed(2)}
 FOV: ${camera.fov.toFixed(2)} rad (${(camera.fov * 180 / Math.PI).toFixed(1)}°)
-Target: (${camera.target.x.toFixed(1)}, ${camera.target.y.toFixed(1)}, ${camera.target.z.toFixed(1)})
-
-Refresh to see it applied.`;
+Target: (${camera.target.x.toFixed(1)}, ${camera.target.y.toFixed(1)}, ${camera.target.z.toFixed(1)})`;
 
       console.log(msg);
       alert(msg);

@@ -107,7 +107,7 @@ export function getGroundMaterial(scene: BABYLON.Scene): BABYLON.PBRMaterial {
     mat.roughness = MATERIAL_CONFIGS.ground.roughness;
 
     materialCache.set(key, mat);
-    mat.freeze(); // Optimize: freeze static material
+    // mat.freeze(); // Disabled for mobile stability
     return mat;
 }
 
@@ -300,7 +300,7 @@ export function getHamburgerMaterial(
     mat.roughness = MATERIAL_CONFIGS.hamburger.roughness;
 
     materialCache.set(key, mat);
-    mat.freeze(); // Optimize: freeze static material
+    // mat.freeze(); // Disabled for mobile stability
     return mat;
 }
 

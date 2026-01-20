@@ -50,9 +50,14 @@ export function createLighting(scene: BABYLON.Scene) {
     directionalLight.position = new BABYLON.Vector3(20, 40, -30);
     directionalLight.intensity = 2.0; // Increased from 1.5 for higher contrast
 
+    // Mobile detection for performance optimization
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
     // Use Cascaded Shadow Maps for consistent shadows over long distances
-    const shadowGenerator = new BABYLON.CascadedShadowGenerator(2048, directionalLight);
-    shadowGenerator.numCascades = 4; // 4 cascades for smooth transitions
+    // Reduced quality on mobile for better performance
+    const shadowMapSize = isMobile ? 1024 : 2048;
+    const shadowGenerator = new BABYLON.CascadedShadowGenerator(shadowMapSize, directionalLight);
+    shadowGenerator.numCascades = isMobile ? 2 : 4; // Fewer cascades on mobile
     shadowGenerator.lambda = 0.9; // Blend factor between logarithmic and linear distribution
     shadowGenerator.cascadeBlendPercentage = 0.1; // Smooth blending between cascades
     shadowGenerator.stabilizeCascades = true; // Reduce shadow swimming/flickering
