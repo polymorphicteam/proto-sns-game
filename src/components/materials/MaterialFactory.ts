@@ -319,6 +319,51 @@ export function getHamburgerUnifiedMaterial(scene: BABYLON.Scene): BABYLON.PBRMa
 }
 
 /**
+ * Get or create layered road material (Asphalt top, Dirt sides)
+ * For use with MultiMaterial and SubMeshes
+ */
+export function getLayeredRoadMaterial(scene: BABYLON.Scene): BABYLON.MultiMaterial {
+    const key = "roadLayeredMulti";
+    const multiMatKey = `Multi_${key}`;
+
+    // Check if multi-material is already in cache
+    // Note: MultiMaterial isn't in the Map<string, PBRMaterial> directly, 
+    // but we can check if it exists in the scene or handle it separately.
+    const existing = scene.getMaterialByName(multiMatKey);
+    if (existing && existing instanceof BABYLON.MultiMaterial) {
+        return existing;
+    }
+
+    // Create sub-materials
+    // 1. Asphalt Top
+    const asphaltMat = new BABYLON.PBRMaterial("asphaltTopMat", scene);
+    asphaltMat.albedoTexture = new BABYLON.Texture("./scene/assets/road/asphalt_top.png", scene);
+    asphaltMat.metallic = 0.0;
+    asphaltMat.roughness = 0.8;
+
+    // 2. Dirt Sides (with Asphalt Top Thickness)
+    const asphaltDirtSideMat = new BABYLON.PBRMaterial("asphaltDirtSideMat", scene);
+    // Setting invertY to false because Babylon.js flips textures by default
+    asphaltDirtSideMat.albedoTexture = new BABYLON.Texture("./scene/assets/road/asphalt_dirt_side.png", scene, false, false);
+    asphaltDirtSideMat.metallic = 0.0;
+    asphaltDirtSideMat.roughness = 0.9;
+
+    // 3. Dirt Bottom (Pure Dirt)
+    const dirtBottomMat = new BABYLON.PBRMaterial("dirtBottomMat", scene);
+    dirtBottomMat.albedoTexture = new BABYLON.Texture("./scene/assets/road/dirt_sides.png", scene);
+    dirtBottomMat.metallic = 0.0;
+    dirtBottomMat.roughness = 0.9;
+
+    // Create MultiMaterial
+    const multiMat = new BABYLON.MultiMaterial(multiMatKey, scene);
+    multiMat.subMaterials.push(asphaltDirtSideMat); // Index 0: Sides
+    multiMat.subMaterials.push(asphaltMat);         // Index 1: Top
+    multiMat.subMaterials.push(dirtBottomMat);      // Index 2: Bottom
+
+    return multiMat;
+}
+
+/**
  * Clear material cache (useful for scene disposal)
  */
 export function clearMaterialCache(): void {

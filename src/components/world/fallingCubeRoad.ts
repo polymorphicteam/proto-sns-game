@@ -1,6 +1,7 @@
 // src/components/world/fallingCubeRoad.ts
 import * as BABYLON from "@babylonjs/core";
 import { useGameStore } from "../../store/gameStore";
+import { getLayeredRoadMaterial } from "../materials/MaterialFactory";
 
 // ============================================================
 // CONFIGURATION - OPTIMIZED FOR PERFORMANCE
@@ -102,44 +103,43 @@ export function createFallingCubeRoad(
     // ----------------------------------------------------------
     // CUBE MATERIALS - Checkerboard pattern
     // ----------------------------------------------------------
-    // ----------------------------------------------------------
-    // CUBE MATERIALS - Checkerboard pattern (Gray Asphalt)
-    // ----------------------------------------------------------
-    // ----------------------------------------------------------
-    // CUBE MATERIALS - Uniform Gray (Asphalt)
-    // ----------------------------------------------------------
-    const redMaterial = new BABYLON.PBRMaterial("cubeMatRed", scene);
-    // Uniform Asphalt Color
-    redMaterial.albedoColor = new BABYLON.Color3(0.2, 0.2, 0.2);
-    redMaterial.roughness = 0.9;
-    redMaterial.metallic = 0.0;
-
-    const blackMaterial = new BABYLON.PBRMaterial("cubeMatBlack", scene);
-    // Same Uniform Asphalt Color (No visible pattern)
-    blackMaterial.albedoColor = new BABYLON.Color3(0.2, 0.2, 0.2);
-    blackMaterial.roughness = 0.9;
-    blackMaterial.metallic = 0.0;
+    const layeredMaterial = getLayeredRoadMaterial(scene);
 
     // ----------------------------------------------------------
-    // SOURCE CUBE MESHES (for instancing) - one per color
+    // SOURCE CUBE MESHES (for instancing)
     // ----------------------------------------------------------
-    const sourceCubeRed = BABYLON.MeshBuilder.CreateBox(
-        "fallingCubeSourceRed",
+    const sourceCube = BABYLON.MeshBuilder.CreateBox(
+        "fallingCubeSource",
         { size: CONFIG.cubeSize },
         scene
     );
-    sourceCubeRed.material = redMaterial;
-    sourceCubeRed.isVisible = false;
-    sourceCubeRed.receiveShadows = true;
+    sourceCube.material = layeredMaterial;
+    sourceCube.isVisible = false;
+    sourceCube.receiveShadows = true;
 
-    const sourceCubeBlack = BABYLON.MeshBuilder.CreateBox(
-        "fallingCubeSourceBlack",
-        { size: CONFIG.cubeSize },
-        scene
-    );
-    sourceCubeBlack.material = blackMaterial;
-    sourceCubeBlack.isVisible = false;
-    sourceCubeBlack.receiveShadows = true;
+    // Configure SubMeshes for the layered look
+    // SubMaterial 0: Dirt (Sides and Bottom)
+    // SubMaterial 1: Asphalt (Top)
+    // Box indices are 36 (6 faces * 2 triangles * 3 vertices)
+    sourceCube.subMeshes = [];
+
+    // 1. Sides (Material Index 0: Asphalt-Dirt Side)
+    // Indices for faces 0, 1, 2, 3 are 0 to 23.
+    new BABYLON.SubMesh(0, 0, sourceCube.getTotalVertices(), 0, 24, sourceCube); // Sides
+
+    // 2. Bottom (Material Index 2: Pure Dirt)
+    // Indices for face 5 are 30 to 35.
+    new BABYLON.SubMesh(2, 0, sourceCube.getTotalVertices(), 30, 6, sourceCube); // Bottom
+
+    // 3. Top (Material Index 1: Pure Asphalt)
+    // Indices for face 4 (Top) are 24 to 29.
+    new BABYLON.SubMesh(1, 0, sourceCube.getTotalVertices(), 24, 6, sourceCube);
+
+    // Re-use sourceCube for both "red" and "black" logic if needed, 
+    // but the user wants layered textures like the illustration, which doesn't necessarily need the checkerboard colors anymore.
+    // However, to keep the logic consistent, I'll use the same source for both or remove the choice.
+    const sourceCubeRed = sourceCube;
+    const sourceCubeBlack = sourceCube;
 
     // ----------------------------------------------------------
     // SHADOW CATCHER GROUND PLANE
@@ -673,10 +673,8 @@ export function createFallingCubeRoad(
         }
         allCubes.length = 0;
 
-        sourceCubeRed.dispose();
-        sourceCubeBlack.dispose();
-        redMaterial.dispose();
-        blackMaterial.dispose();
+        sourceCube.dispose();
+        layeredMaterial.dispose();
         shadowCatcherPlane.dispose();
         shadowCatcherMaterial.dispose();
         fallenCubePositions.clear();

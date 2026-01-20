@@ -37,14 +37,12 @@ export function createCoinSystem(
     const spawnZ = options.spawnZ ?? -520;
     const despawnZ = options.despawnZ ?? 200;
     const laneWidth = options.laneWidth ?? 25;
-    const modelPath = options.modelPath ?? "/scene/assets/model/coin/Bitcoin.glb";
 
     const root = new BABYLON.TransformNode("coins_root", scene);
     const coinPool: CoinInstance[] = [];
     const activeCoins: CoinInstance[] = [];
 
-    // Source container for instancing (loaded from GLB)
-    let sourceContainer: BABYLON.AssetContainer | null = null;
+    // Coin loading state
     let isLoaded = false;
     const pendingSpawns: Array<{ laneIndex: number; yOffset: number; count: number; spacing: number }> = [];
 
@@ -55,80 +53,100 @@ export function createCoinSystem(
         hasObstacleAt = checker;
     }
 
-    // Load the Bitcoin GLB model using AssetContainer
-    BABYLON.SceneLoader.LoadAssetContainerAsync(modelPath, "", scene).then((container) => {
-        console.log("🪙 Bitcoin GLB loaded successfully");
-        console.log(`   Meshes: ${container.meshes.length}`);
+    // Create materials once for all coins
+    let coinFaceMaterial: BABYLON.PBRMaterial | null = null;
+    let coinEdgeMaterial: BABYLON.PBRMaterial | null = null;
+    let coinTexture: BABYLON.Texture | null = null;
 
-        sourceContainer = container;
+    // Initialize materials
+    function initMaterials() {
+        // Face material with bitcoin texture
+        coinFaceMaterial = new BABYLON.PBRMaterial("coinFaceMat", scene);
+        coinTexture = new BABYLON.Texture("/scene/assets/model/coin/bitcoin_face.png", scene);
+        coinFaceMaterial.albedoTexture = coinTexture;
+        coinFaceMaterial.metallic = 0.85;
+        coinFaceMaterial.roughness = 0.3;
+        coinFaceMaterial.emissiveColor = new BABYLON.Color3(0.4, 0.32, 0.05); // Brighter glow
+        coinFaceMaterial.emissiveIntensity = 0.8; // Higher intensity
+
+        // Edge material - solid gold
+        coinEdgeMaterial = new BABYLON.PBRMaterial("coinEdgeMat", scene);
+        coinEdgeMaterial.albedoColor = new BABYLON.Color3(1.0, 0.84, 0.0);
+        coinEdgeMaterial.metallic = 0.9;
+        coinEdgeMaterial.roughness = 0.25;
+        coinEdgeMaterial.emissiveColor = new BABYLON.Color3(0.25, 0.2, 0.02);
+        coinEdgeMaterial.emissiveIntensity = 0.4;
+
         isLoaded = true;
+        console.log("🪙 Coin materials initialized");
 
         // Process any pending spawns
         for (const pending of pendingSpawns) {
             spawnCoinInternal(pending.laneIndex, pending.yOffset, pending.count, pending.spacing);
         }
         pendingSpawns.length = 0;
-    }).catch((error) => {
-        console.error("❌ Failed to load Bitcoin GLB:", error);
-        isLoaded = true; // Mark as loaded to prevent hangs
-    });
+    }
+
+    // Initialize materials immediately
+    initMaterials();
 
     function createCoinMesh(): BABYLON.AbstractMesh | null {
-        if (!sourceContainer) return null;
+        if (!coinFaceMaterial || !coinEdgeMaterial) return null;
 
-        // Instantiate the model - creates a clone of all meshes
-        const instances = sourceContainer.instantiateModelsToScene(
-            (name) => `coin_${coinPool.length}_${name}`,
-            false // Don't clone materials (share them)
+        // Create cylinder (coin shape)
+        const diameter = 7.5;  // Scaled 1.5x from 5
+        const thickness = 1.2; // Scaled 1.5x from 0.8
+
+        const coin = BABYLON.MeshBuilder.CreateCylinder(
+            `coin_${coinPool.length}`,
+            {
+                diameter: diameter,
+                height: thickness,
+                tessellation: 32,
+                cap: BABYLON.Mesh.CAP_ALL,
+                faceUV: [
+                    new BABYLON.Vector4(0, 0, 1, 1), // Edge UV
+                    new BABYLON.Vector4(1, 0, 0, 1), // Top cap UV - flipped horizontally
+                    new BABYLON.Vector4(0, 0, 1, 1), // Bottom cap UV - normal
+                ],
+            },
+            scene
         );
 
-        if (instances.rootNodes.length === 0) {
-            console.error("❌ No root nodes in coin container");
-            return null;
-        }
+        coin.parent = root;
 
-        // Create a container transform node for this coin
-        const coinRoot = new BABYLON.TransformNode(`coin_root_${coinPool.length}`, scene);
-        coinRoot.parent = root;
+        // Rotate so the coin face is vertical (standing up)
+        coin.rotation.x = Math.PI / 2;
 
-        // Parent all instantiated nodes to our container
-        for (const node of instances.rootNodes) {
-            node.parent = coinRoot;
-        }
+        // Apply multi-material for edge vs caps
+        const multiMat = new BABYLON.MultiMaterial(`coinMultiMat_${coinPool.length}`, scene);
+        multiMat.subMaterials.push(coinEdgeMaterial);  // Index 0: Edge
+        multiMat.subMaterials.push(coinFaceMaterial);  // Index 1: Top cap
+        multiMat.subMaterials.push(coinFaceMaterial);  // Index 2: Bottom cap
 
-        // Scale the coin appropriately - make it larger and thicker (20% smaller from previous stable state)
-        coinRoot.scaling = new BABYLON.Vector3(0.75, 0.75, 1.5);
+        coin.material = multiMat;
 
-        // Add all child meshes as shadow casters and make them reflective
-        const allMeshes = coinRoot.getChildMeshes(false);
-        for (const mesh of allMeshes) {
-            shadowGenerator.addShadowCaster(mesh, true);
-            mesh.receiveShadows = true;
+        // Setup submeshes for the cylinder (edge, top cap, bottom cap)
+        coin.subMeshes = [];
+        const vertexCount = coin.getTotalVertices();
 
-            // Make coin highly reflective with gold metallic look
-            if (mesh.material && mesh.material instanceof BABYLON.PBRMaterial) {
-                // Clone the material so each coin can have unique settings if needed
-                const pbrMat = mesh.material.clone(`coin_mat_${coinPool.length}_${mesh.name}`) as BABYLON.PBRMaterial;
-                mesh.material = pbrMat;
+        // Cylinder has specific index structure: tube, cap1, cap2
+        // For a tessellation of 32: tube is 0-383, caps follow
+        const tessellation = 32;
+        const tubeIndices = tessellation * 2 * 3; // 192 indices for tube
+        const capIndices = tessellation * 3;      // 96 indices per cap
 
-                pbrMat.metallic = 1.0;           // Fully metallic
-                pbrMat.roughness = 0.05;         // Even smoother for better highlights
-                pbrMat.albedoColor = new BABYLON.Color3(1.0, 0.84, 0.0); // Gold tint
-                pbrMat.reflectivityColor = new BABYLON.Color3(1.0, 0.9, 0.5); // Gold reflections
+        new BABYLON.SubMesh(0, 0, vertexCount, 0, tubeIndices, coin);                    // Edge
+        new BABYLON.SubMesh(1, 0, vertexCount, tubeIndices, capIndices, coin);           // Top cap
+        new BABYLON.SubMesh(2, 0, vertexCount, tubeIndices + capIndices, capIndices, coin); // Bottom cap
 
-                // Add emissive glow to make it "pop" and look less dull - Slightly reduced for better balance
-                pbrMat.emissiveColor = new BABYLON.Color3(0.4, 0.3, 0.05);
-                pbrMat.emissiveIntensity = 0.8;
+        // Add shadow casting
+        shadowGenerator.addShadowCaster(coin, true);
+        coin.receiveShadows = true;
 
-                // Increase environment intensity specifically for coins to make them shine - Toned down
-                pbrMat.environmentIntensity = 1.2;
-            }
-        }
+        console.log(`🪙 Created procedural coin`);
 
-        console.log(`🪙 Created coin with ${allMeshes.length} meshes`);
-
-        // Return the transform node (cast to AbstractMesh for interface compatibility)
-        return coinRoot as unknown as BABYLON.AbstractMesh;
+        return coin;
     }
 
     function acquire(): CoinInstance | null {
@@ -180,7 +198,7 @@ export function createCoinSystem(
     }
 
     function spawnCoin(laneIndex: number, yOffset: number, count: number = 1, spacing: number = 10) {
-        if (!isLoaded || !sourceContainer) {
+        if (!isLoaded) {
             // Queue for later
             pendingSpawns.push({ laneIndex, yOffset, count, spacing });
             return;

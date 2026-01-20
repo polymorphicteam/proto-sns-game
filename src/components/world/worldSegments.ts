@@ -239,10 +239,11 @@ export function createWorldSegments(
       });
 
       const base = new BABYLON.TransformNode("buildSeg-0", scene);
-      createGroup(base, "B_A0", 0, meshes);
+      const groupA = createGroup(base, "B_A0", 0, meshes);
+      groupA.position.x = -25; // Shift right buildings back to show sidewalk
       const leftGroup = createGroup(base, "B_B0", Math.PI, meshes);
-      // Shift left buildings (User request: "-10 units along X")
-      leftGroup.position.x = -10;
+      // Shift left buildings back to show sidewalk
+      leftGroup.position.x = 25;
 
       const bbox = base.getHierarchyBoundingVectors();
       // bbox height/length might be smaller, but we want to ENFORCE 42 cubes long (42 * 25 = 1050)
@@ -258,7 +259,8 @@ export function createWorldSegments(
       rebuildGround(buildingSpacing, targetSegmentCount);
 
       function register(seg: BABYLON.TransformNode, i: number) {
-        seg.position = new BABYLON.Vector3(0, 0, -i * buildingSpacing);
+        // Raise buildings slightly (Y=3)
+        seg.position = new BABYLON.Vector3(0, 3, -i * buildingSpacing);
         buildingSegments.push(seg);
       }
 
@@ -266,8 +268,10 @@ export function createWorldSegments(
 
       for (let i = 1; i < targetSegmentCount; i++) {
         const seg = new BABYLON.TransformNode(`buildSeg-${i}`, scene);
-        createGroup(seg, `B_A${i}`, 0, meshes);
-        createGroup(seg, `B_B${i}`, Math.PI, meshes);
+        const gA = createGroup(seg, `B_A${i}`, 0, meshes);
+        gA.position.x = -25;
+        const gB = createGroup(seg, `B_B${i}`, Math.PI, meshes);
+        gB.position.x = 25;
         register(seg, i);
       }
     })
@@ -284,6 +288,224 @@ export function createWorldSegments(
       if (b.position.z > buildingSpacing)
         b.position.z = minZ - buildingSpacing;
     }
+
+    // Also move sidewalks
+    for (const s of sidewalkSegments) s.position.z += movement;
+    let minSZ = Infinity;
+    for (const s of sidewalkSegments)
+      if (s.position.z < minSZ) minSZ = s.position.z;
+    for (const s of sidewalkSegments) {
+      if (s.position.z > sidewalkSpacing)
+        s.position.z = minSZ - sidewalkSpacing;
+    }
+
+    // Also move road markers
+    for (const m of roadMarkers) m.position.z += movement;
+    let minMZ = Infinity;
+    for (const m of roadMarkers)
+      if (m.position.z < minMZ) minMZ = m.position.z;
+    for (const m of roadMarkers) {
+      if (m.position.z > markerSpacing)
+        m.position.z = minMZ - markerSpacing;
+    }
+
+    // Also move trees
+    for (const t of treeRoots) t.position.z += movement;
+    let minTZ = Infinity;
+    for (const t of treeRoots)
+      if (t.position.z < minTZ) minTZ = t.position.z;
+    for (const t of treeRoots) {
+      if (t.position.z > treeSpacing)
+        t.position.z = minTZ - treeSpacing;
+    }
+  }
+
+  // ---------------------------------------------
+  // SIDEWALKS (Simple cubes to cover skydome gaps)
+  // ---------------------------------------------
+  const sidewalkSegments: BABYLON.Mesh[] = [];
+  const sidewalkSpacing = 200; // Length of each sidewalk segment
+  const sidewalkWidth = 100;   // Width of each sidewalk
+  const sidewalkHeight = 5;    // Thickness
+  const sidewalkY = -sidewalkHeight / 2 + 3; // Raise sidewalks up by 3 units
+
+  // Sidewalk material (gray concrete)
+  const sidewalkMat = new BABYLON.PBRMaterial("sidewalkMat", scene);
+  sidewalkMat.albedoColor = new BABYLON.Color3(0.4, 0.4, 0.4);
+  sidewalkMat.roughness = 1.0;
+  sidewalkMat.metallic = 0.0;
+
+  // Road is ~150 units wide centered at 0. Sidewalks go from road edge to buildings.
+  // Left sidewalk at X = -65 - halfWidth, Right sidewalk at X = 65 + halfWidth
+  const roadHalfWidth = 65; // Moved sidewalks closer to cars
+  const leftSidewalkX = -roadHalfWidth - sidewalkWidth / 2;
+  const rightSidewalkX = roadHalfWidth + sidewalkWidth / 2;
+
+  function createSidewalks() {
+    const segmentCount = 8; // Enough to cover visible area
+    for (let i = 0; i < segmentCount; i++) {
+      // Left sidewalk
+      const leftSidewalk = BABYLON.MeshBuilder.CreateBox(
+        `sidewalk_left_${i}`,
+        { width: sidewalkWidth, height: sidewalkHeight, depth: sidewalkSpacing },
+        scene
+      );
+      leftSidewalk.material = sidewalkMat;
+      leftSidewalk.position.set(leftSidewalkX, sidewalkY, -i * sidewalkSpacing);
+      leftSidewalk.receiveShadows = true;
+      sidewalkSegments.push(leftSidewalk);
+
+      // Right sidewalk
+      const rightSidewalk = BABYLON.MeshBuilder.CreateBox(
+        `sidewalk_right_${i}`,
+        { width: sidewalkWidth, height: sidewalkHeight, depth: sidewalkSpacing },
+        scene
+      );
+      rightSidewalk.material = sidewalkMat;
+      rightSidewalk.position.set(rightSidewalkX, sidewalkY, -i * sidewalkSpacing);
+      rightSidewalk.receiveShadows = true;
+      sidewalkSegments.push(rightSidewalk);
+    }
+  }
+
+  createSidewalks();
+
+  // ---------------------------------------------
+  // STYLIZED TREES ALONG SIDEWALKS (GLB Model)
+  // ---------------------------------------------
+  const treeRoots: BABYLON.TransformNode[] = [];
+  const treeSpacing = 80;  // Base distance between trees
+  const treeY = 3;         // Raise trees to sit on sidewalk
+  const treeScale = 39;    // Scale factor for the GLB model (30 * 1.3)
+  let treeContainer: BABYLON.AssetContainer | null = null;
+
+  // Position trees on the inner edge of sidewalks (near cars)
+  const leftTreeX = leftSidewalkX + sidewalkWidth / 2 - 10;
+  const rightTreeX = rightSidewalkX - sidewalkWidth / 2 + 10;
+
+  function createTreeFromGLB(x: number, z: number): BABYLON.TransformNode | null {
+    if (!treeContainer) return null;
+
+    const treeRoot = new BABYLON.TransformNode(`tree_${treeRoots.length}`, scene);
+    treeRoot.position.set(x, treeY, z);
+
+    // Random scale variation (0.85 to 1.15)
+    const scaleVariation = 0.85 + Math.random() * 0.3;
+    treeRoot.scaling.setAll(treeScale * scaleVariation);
+
+    // Random Y rotation for variety
+    treeRoot.rotation.y = Math.random() * Math.PI * 2;
+
+    // Instantiate the GLB model
+    const entries = treeContainer.instantiateModelsToScene(
+      (name) => `tree_${treeRoots.length}_${name}`,
+      false
+    );
+
+    // Parent all nodes to our root
+    for (const node of entries.rootNodes) {
+      node.parent = treeRoot;
+
+      // Add shadow casting for all meshes
+      const meshes = (node as BABYLON.TransformNode).getChildMeshes?.(true) || [];
+      if (node instanceof BABYLON.Mesh) {
+        meshes.push(node);
+      }
+      for (const mesh of meshes) {
+        mesh.receiveShadows = true;
+        shadowGenerator.addShadowCaster(mesh, true);
+      }
+    }
+
+    return treeRoot;
+  }
+
+  function createTreeRows() {
+    if (!treeContainer) return;
+
+    const totalDistance = 1600;
+    const numTrees = Math.ceil(totalDistance / treeSpacing);
+
+    for (let i = 0; i < numTrees; i++) {
+      // Add random offset for natural placement (-20 to +20 units)
+      const randomOffset = (Math.random() - 0.5) * 40;
+      const z = -i * treeSpacing + randomOffset;
+
+      // Left side trees (with slight X variation)
+      const leftXVariation = (Math.random() - 0.5) * 8;
+      const leftTree = createTreeFromGLB(leftTreeX + leftXVariation, z);
+      if (leftTree) treeRoots.push(leftTree);
+
+      // Right side trees (with slight X variation)
+      const rightXVariation = (Math.random() - 0.5) * 8;
+      const rightTree = createTreeFromGLB(rightTreeX + rightXVariation, z);
+      if (rightTree) treeRoots.push(rightTree);
+    }
+
+    console.log(`🌳 Created ${treeRoots.length} trees from GLB`);
+  }
+
+  // Load tree GLB model
+  BABYLON.SceneLoader.LoadAssetContainerAsync("/scene/assets/model/tree.glb", "", scene)
+    .then((container) => {
+      console.log("🌳 Tree GLB loaded successfully");
+      treeContainer = container;
+      createTreeRows();
+    })
+    .catch((err) => {
+      console.error("Failed to load tree.glb:", err);
+    });
+
+  // ---------------------------------------------
+  // YELLOW CENTER LINE MARKERS
+  // ---------------------------------------------
+  const roadMarkers: BABYLON.Mesh[] = [];
+  const markerLength = 8;    // Length of each dash
+  const markerGap = 12;      // Gap between dashes
+  const markerWidth = 1.5;   // Width of the line
+  const markerHeight = 0.2;  // Slight height above road
+  const markerY = 0.1;       // Just above road surface
+  const markerSpacing = markerLength + markerGap;
+
+  // Yellow material
+  const markerMat = new BABYLON.PBRMaterial("roadMarkerMat", scene);
+  markerMat.albedoColor = new BABYLON.Color3(1, 0.85, 0.1); // Bright yellow
+  markerMat.emissiveColor = new BABYLON.Color3(0.3, 0.25, 0.0); // Slight glow
+  markerMat.roughness = 0.6;
+  markerMat.metallic = 0.0;
+
+  function createRoadMarkers() {
+    const totalDistance = 2000; // Cover a long stretch
+    const numMarkers = Math.ceil(totalDistance / markerSpacing);
+
+    for (let i = 0; i < numMarkers; i++) {
+      const marker = BABYLON.MeshBuilder.CreateBox(
+        `roadMarker_${i}`,
+        { width: markerWidth, height: markerHeight, depth: markerLength },
+        scene
+      );
+      marker.material = markerMat;
+      marker.position.set(0, markerY, -i * markerSpacing);
+      marker.receiveShadows = true;
+      roadMarkers.push(marker);
+    }
+  }
+
+  createRoadMarkers();
+
+  // Advance road markers with scroll
+  function advanceRoadMarkers(movement: number) {
+    for (const m of roadMarkers) m.position.z += movement;
+
+    let minZ = Infinity;
+    for (const m of roadMarkers)
+      if (m.position.z < minZ) minZ = m.position.z;
+
+    const totalLength = roadMarkers.length * markerSpacing;
+    for (const m of roadMarkers) {
+      if (m.position.z > markerSpacing)
+        m.position.z = minZ - markerSpacing;
+    }
   }
 
   // ---------------------------------------------
@@ -292,6 +514,11 @@ export function createWorldSegments(
   function dispose() {
     groundSegments.forEach((g) => g.dispose());
     buildingSegments.forEach((b) => b.dispose());
+    sidewalkSegments.forEach((s) => s.dispose());
+    roadMarkers.forEach((m) => m.dispose());
+    treeRoots.forEach((t) => t.dispose());
+    sidewalkMat.dispose();
+    markerMat.dispose();
     dynamicTex.dispose();
     packagedTex.dispose();
     activeRoadTexture.dispose();
