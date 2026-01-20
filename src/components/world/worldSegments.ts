@@ -354,7 +354,8 @@ export function createWorldSegments(
     sidewalkBase.receiveShadows = true;
     sidewalkBase.isVisible = false; // Hide base mesh
 
-    sidewalkMat.freeze(); // Optimize: Freeze static material
+    sidewalkBase.isVisible = false; // Hide base mesh
+    // sidewalkMat.freeze(); // Optimize: frozen removed for mobile stability
 
     for (let i = 0; i < segmentCount; i++) {
       // Left sidewalk instance
@@ -491,7 +492,8 @@ export function createWorldSegments(
     markerBase.receiveShadows = true;
     markerBase.isVisible = false; // Hide base mesh
 
-    markerMat.freeze(); // Optimize: Freeze static material
+    markerBase.isVisible = false; // Hide base mesh
+    // markerMat.freeze(); // Optimize: frozen removed for mobile stability
 
     for (let i = 0; i < numMarkers; i++) {
       const marker = markerBase.createInstance(`roadMarker_${i}`);

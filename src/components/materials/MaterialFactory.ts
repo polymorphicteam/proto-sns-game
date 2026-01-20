@@ -127,7 +127,7 @@ export function getCoinMaterial(scene: BABYLON.Scene): BABYLON.PBRMaterial {
     mat.roughness = MATERIAL_CONFIGS.coin.roughness;
 
     materialCache.set(key, mat);
-    mat.freeze(); // Optimize: freeze static material
+    // mat.freeze(); // Optimize: frozen removed for mobile stability
     return mat;
 }
 
@@ -151,7 +151,7 @@ export function getObstacleMaterial(
     mat.roughness = MATERIAL_CONFIGS.obstacle.roughness;
 
     materialCache.set(key, mat);
-    mat.freeze(); // Optimize: freeze static material
+    // mat.freeze(); // Optimize: frozen removed for mobile stability
     return mat;
 }
 
@@ -178,7 +178,7 @@ export function getBuildingMaterial(
     mat.roughness = MATERIAL_CONFIGS.building.roughness;
 
     materialCache.set(key, mat);
-    mat.freeze(); // Optimize: freeze static material
+    // mat.freeze(); // Optimize: frozen removed for mobile stability
     return mat;
 }
 
