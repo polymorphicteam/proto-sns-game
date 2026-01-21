@@ -2,21 +2,24 @@ import React from 'react';
 
 /**
  * CONFIGURAZIONE VIDEO
- * Modifica questi valori per aggiustare posizione e grandezza
  */
 const VIDEO_CONFIG = {
-    scale: 0.6,        // 1.0 = grandezza normale, 1.2 = 20% più grande, 0.8 = 20% più piccolo
-    offsetX: 0,        // Spostamento orizzontale in px (positivo = destra, negativo = sinistra)
-    offsetY: 150        // Spostamento verticale in px (positivo = basso, negativo = alto)
+    scale: 0.6,
+    offsetX: 0,
+    offsetY: 150
 };
 
 /**
- * OutroScreen Component
- * 
- * Displays a full-screen static image when the player wins (timer runs out).
- * Covers the 3D scene completely.
- * Includes a transparent video overlay.
+ * CONFIGURAZIONE PULSANTE RESTART
+ * Qui puoi regolare tutto a tuo piacimento
  */
+const BUTTON_CONFIG = {
+    width: '400px',     // Regola la grandezza (es: '150px', '20%', ecc.)
+    top: '50px',        // Distanza dal bordo superiore (es: '10%', '50px')
+    left: '50%',        // Centratura orizzontale
+    zIndex: 10          // Deve stare sopra il video
+};
+
 export const OutroScreen: React.FC = () => {
     return (
         <div className="outro-screen">
@@ -29,26 +32,33 @@ export const OutroScreen: React.FC = () => {
                     position: 'absolute',
                     top: '50%',
                     left: '50%',
-                    // Non toccare width/height se vuoi mantenere l'aspect ratio originale del video
-                    // Usa width: '100%' solo se vuoi forzare la larghezza container
                     width: '100%',
                     height: '100%',
-                    objectFit: 'contain', // 'contain' per vedere tutto il video senza tagli
+                    objectFit: 'contain',
                     pointerEvents: 'none',
-                    // La trasformazione combina il centraggio (-50%, -50%) con i tuoi aggiustamenti personalizzati
                     transform: `translate(calc(-50% + ${VIDEO_CONFIG.offsetX}px), calc(-50% + ${VIDEO_CONFIG.offsetY}px)) scale(${VIDEO_CONFIG.scale})`
                 }}
             />
+
             <img
                 src="/PlayAgainButton.png"
+                alt="Restart"
                 onClick={() => window.location.reload()}
                 style={{
                     position: 'absolute',
-                    bottom: '10%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
+                    // Posizionamento
+                    top: BUTTON_CONFIG.top,
+                    left: BUTTON_CONFIG.left,
+                    transform: 'translateX(-50%)', // Centra perfettamente l'immagine rispetto alla sua larghezza
+
+                    // Dimensioni
+                    width: BUTTON_CONFIG.width,
+                    height: 'auto', // Mantiene le proporzioni originali dell'immagine
+
+                    // Interazione e Stile
                     cursor: 'pointer',
-                    zIndex: 10
+                    zIndex: BUTTON_CONFIG.zIndex,
+                    pointerEvents: 'auto' // Fondamentale per ricevere il click
                 }}
             />
         </div>
