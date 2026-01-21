@@ -39,6 +39,18 @@ export const OutroScreen: React.FC = () => {
                     transform: `translate(calc(-50% + ${VIDEO_CONFIG.offsetX}px), calc(-50% + ${VIDEO_CONFIG.offsetY}px)) scale(${VIDEO_CONFIG.scale})`
                 }}
             />
+            <img
+                src="/PlayAgainButton.png"
+                onClick={() => window.location.reload()}
+                style={{
+                    position: 'absolute',
+                    bottom: '10%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    cursor: 'pointer',
+                    zIndex: 10
+                }}
+            />
         </div>
     );
 };
