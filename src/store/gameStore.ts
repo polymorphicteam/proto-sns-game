@@ -111,7 +111,7 @@ const INITIAL_STATE: GameState = {
     isLoading: true,
     showIntroScreen: true,
     countdownValue: null,
-    matchDuration: 60,         // DEFAULT: 60 seconds (1 minute)
+    matchDuration: 5,         // DEFAULT: 60 seconds (1 minute)
     matchTimeRemaining: 60,    // Starts at full duration
     isMatchTimerActive: false,
     activePowerUps: [],
