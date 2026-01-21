@@ -3,6 +3,7 @@ import React from 'react';
 import { useGameStore } from '../../store/gameStore';
 import { LoadingScreen } from './LoadingScreen';
 import { CountdownOverlay } from './CountdownOverlay';
+import { OutroScreen } from './OutroScreen';
 import '../../styles/main.css';
 
 /**
@@ -120,34 +121,7 @@ export const GameOverlay: React.FC = () => {
 
             {/* Victory Screen - Conditional */}
             {gameState === 'victory' && (
-                <div className="victory-overlay">
-                    {/* 3D VICTORY! text is rendered in Babylon.js scene */}
-                    <div className="victory-subtext">
-                        You survived with {coinCount} coins!
-                    </div>
-                    <button
-                        className="reset-button victory-button"
-                        onClick={() => {
-                            // Hard reload the page
-                            window.location.reload();
-                        }}
-                        style={{
-                            marginTop: '20px',
-                            padding: '12px 24px',
-                            fontSize: '16px',
-                            backgroundColor: 'rgba(50, 200, 50, 0.9)',
-                            color: 'white',
-                            border: '3px solid rgba(255, 215, 0, 0.8)',
-                            borderRadius: '12px',
-                            cursor: 'pointer',
-                            pointerEvents: 'auto',
-                            textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
-                            boxShadow: '0 6px 12px rgba(0,0,0,0.4), 0 0 20px rgba(255, 215, 0, 0.3)',
-                        }}
-                    >
-                        🏆 Play Again
-                    </button>
-                </div>
+                <OutroScreen />
             )}
         </div>
     );

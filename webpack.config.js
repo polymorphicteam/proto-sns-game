@@ -90,6 +90,10 @@ module.exports = {
           from: path.resolve(__dirname, 'public/intro-screen.png'),
           to: 'intro-screen.png',
         },
+        {
+          from: path.resolve(__dirname, 'public/outro2.jpg'),
+          to: 'outro2.jpg',
+        },
       ],
     }),
   ],

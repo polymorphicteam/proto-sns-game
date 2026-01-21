@@ -17,7 +17,7 @@ import { setupPlayerController } from "./player/playerController";
 import { setupEnvironment } from "./world/environment";
 import { createUIManager } from "./ui/uiManager";
 import { useGameStore } from "../store/gameStore";
-import { createVictoryEffects } from "./vfx/victoryEffects";
+
 
 // Draco configuration
 if (BABYLON.DracoCompression) {
@@ -107,20 +107,11 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   skyDome.isVisible = true;
 
   // --------------------------------------------
-  // VICTORY CELEBRATION VFX
+  // VICTORY CELEBRATION VFX - REMOVED (Static Outro Screen used instead)
   // --------------------------------------------
-  const victoryVFX = createVictoryEffects(scene);
 
-  useGameStore.subscribe((state, prevState) => {
-    // Trigger victory effects when game state changes to victory
-    if (state.gameState === 'victory' && !victoryVFX.isActive) {
-      console.log("🎆 Victory celebration triggered!");
-      victoryVFX.startVictory();
-    } else if (state.gameState !== 'victory' && victoryVFX.isActive) {
-      // Clean up on game reset
-      victoryVFX.stopVictory();
-    }
-  });
+  // No 3D victory effects/hooks needed.
+  // The static OutroScreen in React layer handles the victory state visualization.
 
 
   // --------------------------------------------
