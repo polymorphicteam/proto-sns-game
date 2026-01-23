@@ -4,11 +4,11 @@
 // Press Shift+C in the game to see the current camera values and copy them here.
 
 export const CAMERA_DEFAULTS = {
-    alpha: 1.57,         // PI/2 for side view
-    beta: 1.0,           // Slightly downward angle
-    radius: 85,          // Zoomed out for better visibility
-    targetX: 0.0,        // Centered on road
-    targetY: -15,        // Match player camera offset
-    targetZ: 0.0,        // At player position
-    fov: 2.00,           // Field of View in radians (≈ 115°)
+    alpha: 1.58,         // From Shift+C save
+    beta: 0.91,          // From Shift+C save
+    radius: 51.69,       // From Shift+C save
+    targetX: -0.0,       // From Shift+C save
+    targetY: -6.1,       // From Shift+C save
+    targetZ: -5.7,       // From Shift+C save
+    fov: 1.50,           // From Shift+C save (85.9°)
 };
