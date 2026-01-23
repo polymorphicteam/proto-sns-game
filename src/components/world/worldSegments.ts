@@ -31,7 +31,7 @@ export function createWorldSegments(
   onSpacingReady?: (spacing: number) => void // <--- Added optional callback
 ): WorldSegments {
   // CONFIG
-  const targetSegmentCount = 6;
+  const targetSegmentCount = 4; // Extended to cover full road horizon
   const groundWidth = 350;   // Widened to add sidewalk space for parked cars
   const groundLength = 160;
   const environmentScale = 8;
@@ -240,10 +240,10 @@ export function createWorldSegments(
 
       const base = new BABYLON.TransformNode("buildSeg-0", scene);
       const groupA = createGroup(base, "B_A0", 0, meshes);
-      groupA.position.x = -25; // Shift right buildings back to show sidewalk
+      groupA.position.x = -90; // Buildings on outer sidewalk edge
       const leftGroup = createGroup(base, "B_B0", Math.PI, meshes);
-      // Shift left buildings back to show sidewalk
-      leftGroup.position.x = 25;
+      // Buildings on outer sidewalk edge
+      leftGroup.position.x = 90;
 
       const bbox = base.getHierarchyBoundingVectors();
       // bbox height/length might be smaller, but we want to ENFORCE 42 cubes long (42 * 25 = 1050)
@@ -269,9 +269,9 @@ export function createWorldSegments(
       for (let i = 1; i < targetSegmentCount; i++) {
         const seg = new BABYLON.TransformNode(`buildSeg-${i}`, scene);
         const gA = createGroup(seg, `B_A${i}`, 0, meshes);
-        gA.position.x = -25;
+        gA.position.x = -90;
         const gB = createGroup(seg, `B_B${i}`, Math.PI, meshes);
-        gB.position.x = 25;
+        gB.position.x = 90;
         register(seg, i);
       }
     })
@@ -324,7 +324,7 @@ export function createWorldSegments(
   // SIDEWALKS (Simple cubes to cover skydome gaps)
   // ---------------------------------------------
   const sidewalkSegments: BABYLON.AbstractMesh[] = [];
-  const sidewalkSpacing = 200; // Length of each sidewalk segment
+  const sidewalkSpacing = 1050; // Match road length
   const sidewalkWidth = 100;   // Width of each sidewalk
   const sidewalkHeight = 5;    // Thickness
   const sidewalkY = -sidewalkHeight / 2 + 3; // Raise sidewalks up by 3 units
@@ -335,14 +335,13 @@ export function createWorldSegments(
   sidewalkMat.roughness = 1.0;
   sidewalkMat.metallic = 0.0;
 
-  // Road is ~150 units wide centered at 0. Sidewalks go from road edge to buildings.
-  // Left sidewalk at X = -65 - halfWidth, Right sidewalk at X = 65 + halfWidth
-  const roadHalfWidth = 65; // Moved sidewalks closer to cars
+  // Road is 150 units wide centered at 0. Sidewalks go from road edge outward.
+  const roadHalfWidth = 75; // Match actual road width (150/2)
   const leftSidewalkX = -roadHalfWidth - sidewalkWidth / 2;
   const rightSidewalkX = roadHalfWidth + sidewalkWidth / 2;
 
   function createSidewalks() {
-    const segmentCount = 8; // Enough to cover visible area
+    const segmentCount = 4; // Extended to cover full road horizon
 
     // Create base mesh for instancing
     const sidewalkBase = BABYLON.MeshBuilder.CreateBox(
@@ -375,6 +374,53 @@ export function createWorldSegments(
   createSidewalks();
 
   // ---------------------------------------------
+  // ROAD EXTENSION PLANE (Lightweight visual fill)
+  // ---------------------------------------------
+  // A simple static plane that extends the road visually beyond the falling cubes
+  // without adding complex geometry. Much lighter than adding more falling cubes.
+  function createRoadExtension() {
+    const roadWidth = 150;  // Match falling cube road width
+    const extensionLength = 3000; // Long enough to cover horizon
+    const startZ = -1050; // Start where falling cube road ends (approx)
+
+    // Create road extension material (same color as road)
+    const extensionMat = new BABYLON.PBRMaterial("roadExtensionMat", scene);
+    extensionMat.albedoColor = new BABYLON.Color3(0.08, 0.075, 0.11); // Dark road color
+    extensionMat.roughness = 0.9;
+    extensionMat.metallic = 0.0;
+
+    // Create the extension plane
+    const extension = BABYLON.MeshBuilder.CreateBox(
+      "roadExtension",
+      { width: roadWidth, height: 1, depth: extensionLength },
+      scene
+    );
+    extension.material = extensionMat;
+    extension.position.set(0, -0.5, startZ - extensionLength / 2);
+    extension.receiveShadows = true;
+    extension.isPickable = false;
+
+    // Add center line stripes
+    const stripeMat = new BABYLON.StandardMaterial("stripeMat", scene);
+    stripeMat.diffuseColor = new BABYLON.Color3(1, 0.84, 0.35); // Yellow stripe
+    stripeMat.emissiveColor = new BABYLON.Color3(0.2, 0.17, 0.07);
+
+    const stripeCount = Math.floor(extensionLength / 60);
+    for (let i = 0; i < stripeCount; i++) {
+      const stripe = BABYLON.MeshBuilder.CreateBox(
+        `stripe_${i}`,
+        { width: 2, height: 0.1, depth: 25 },
+        scene
+      );
+      stripe.material = stripeMat;
+      stripe.position.set(0, 0.1, startZ - 30 - i * 60);
+      stripe.isPickable = false;
+    }
+  }
+
+  createRoadExtension();
+
+  // ---------------------------------------------
   // STYLIZED TREES ALONG SIDEWALKS (GLB Model)
   // ---------------------------------------------
   const treeRoots: BABYLON.TransformNode[] = [];
@@ -383,9 +429,9 @@ export function createWorldSegments(
   const treeScale = 51;    // Scale factor for the GLB model (39 * 1.3)
   let treeContainer: BABYLON.AssetContainer | null = null;
 
-  // Position trees on the inner edge of sidewalks (near cars)
-  const leftTreeX = leftSidewalkX + sidewalkWidth / 2 - 10;
-  const rightTreeX = rightSidewalkX - sidewalkWidth / 2 + 10;
+  // Position trees on the outer sidewalk edge (Sidewalk starts at ±75, trees at ±100)
+  const leftTreeX = leftSidewalkX - 25; // Outer edge of sidewalk
+  const rightTreeX = rightSidewalkX + 25; // Outer edge of sidewalk
 
   function createTreeFromGLB(x: number, z: number): BABYLON.TransformNode | null {
     if (!treeContainer) return null;

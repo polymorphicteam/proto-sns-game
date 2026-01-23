@@ -49,7 +49,7 @@ function buildLoopRange(state: keyof typeof loopFrameRanges, scroll: number) {
 }
 
 const sourceFrameRate = 24;
-const baseScrollSpeed = 55; // Reduced for smaller cube density
+const baseScrollSpeed = 75; // Increased for faster pacing
 
 // Animation ranges config
 const animationRanges = {

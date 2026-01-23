@@ -104,7 +104,7 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   // SKY DOME (Disabled)
   // --------------------------------------------
   const { skyDome } = createSkyDome(scene, assetBase);
-  skyDome.isVisible = true;
+  skyDome.isVisible = false; // Temporarily disabled for debugging
 
   // --------------------------------------------
   // VICTORY CELEBRATION VFX - REMOVED (Static Outro Screen used instead)
@@ -366,20 +366,42 @@ Target: (${camera.target.x.toFixed(1)}, ${camera.target.y.toFixed(1)}, ${camera.
     } else {
       // Unlock camera - reattach controls and remove locked target for free orbiting
       if (cameraLocked) {
-        // Save camera orbit state before unlocking
+        // CRITICAL: Sync camera target before unlocking to prevent jump
+        // Store the exact target position before any modifications
+        let exactTargetPos: BABYLON.Vector3;
+
+        if (camera.lockedTarget) {
+          // Get the absolute position of the locked target
+          if (camera.lockedTarget instanceof BABYLON.Vector3) {
+            exactTargetPos = camera.lockedTarget.clone();
+          } else {
+            // TransformNode / AbstractMesh - get absolute position
+            const targetNode = camera.lockedTarget as any;
+            exactTargetPos = (targetNode.absolutePosition || targetNode.position).clone();
+          }
+
+          console.log(`📍 Locking target at: (${exactTargetPos.x.toFixed(2)}, ${exactTargetPos.y.toFixed(2)}, ${exactTargetPos.z.toFixed(2)})`);
+
+          // Save the locked target before removing it
+          savedLockedTarget = camera.lockedTarget;
+          camera.lockedTarget = null;
+
+          // Force set the target position explicitly
+          camera.setTarget(exactTargetPos);
+        } else {
+          // No locked target, use current target
+          exactTargetPos = camera.target.clone();
+        }
+
+        // Save camera orbit state AFTER setting target
         savedCameraState = {
           alpha: camera.alpha,
           beta: camera.beta,
           radius: camera.radius,
-          targetPosition: camera.target.clone()
+          targetPosition: exactTargetPos
         };
-        console.log("💾 Camera state saved");
+        console.log(`💾 Camera state saved - Alpha: ${camera.alpha.toFixed(2)}, Beta: ${camera.beta.toFixed(2)}, Radius: ${camera.radius.toFixed(2)}`);
 
-        // Save the locked target before removing it
-        if (camera.lockedTarget) {
-          savedLockedTarget = camera.lockedTarget;
-          camera.lockedTarget = null;
-        }
         camera.attachControl(canvas, true);
         cameraLocked = false;
         console.log("🔓 Camera Unlocked (Not Playing) - Free orbit enabled");
