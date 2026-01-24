@@ -46,8 +46,8 @@ export const GameOverlay: React.FC = () => {
 
     return (
         <div className="game-overlay-container">
-            {/* Performance Monitor - Press ` to toggle */}
-            <PerformanceMonitor />
+            {/* Performance Monitor - Press ` to toggle (dev only) */}
+            {process.env.NODE_ENV === 'development' && <PerformanceMonitor />}
             {/* Countdown Overlay */}
             <CountdownOverlay />
             <div className="top-hud">

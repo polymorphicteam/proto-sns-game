@@ -271,6 +271,28 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
       // Save FOV
       localStorage.setItem("camera_fov", camera.fov.toString());
 
+      // Generate JSON for file download (used by build sync script)
+      const cameraSettingsJson = {
+        alpha: parseFloat(camera.alpha.toFixed(2)),
+        beta: parseFloat(camera.beta.toFixed(2)),
+        radius: parseFloat(camera.radius.toFixed(2)),
+        targetX: parseFloat(camera.target.x.toFixed(1)),
+        targetY: parseFloat(camera.target.y.toFixed(1)),
+        targetZ: parseFloat(camera.target.z.toFixed(1)),
+        fov: parseFloat(camera.fov.toFixed(2)),
+      };
+
+      // Trigger JSON file download
+      const blob = new Blob([JSON.stringify(cameraSettingsJson, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'camera-settings.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
       // Generate cameraDefaults.ts code for clipboard
       const cameraDefaultsCode = `export const CAMERA_DEFAULTS = {
     alpha: ${camera.alpha.toFixed(2)},
@@ -289,8 +311,9 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
         console.error("Failed to copy to clipboard:", err);
       });
 
-      const msg = `✅ Camera Saved to LocalStorage!
-📋 Code copied to clipboard - paste into cameraDefaults.ts!
+      const msg = `✅ Camera Saved!
+📁 camera-settings.json downloaded (save to project root)
+📋 Code copied to clipboard
 
 Alpha: ${camera.alpha.toFixed(2)} rad
 Beta: ${camera.beta.toFixed(2)} rad
