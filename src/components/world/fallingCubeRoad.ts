@@ -179,6 +179,144 @@ export function createFallingCubeRoad(
     const sourceCubeBlack = sourceCube;
 
     // ----------------------------------------------------------
+    // DEBRIS SYSTEM - Small cubes that spawn when road crumbles behind player
+    // ----------------------------------------------------------
+    const DEBRIS_CONFIG = {
+        pieceSize: CONFIG.cubeSize / 3, // Each debris piece is 1/3 the size
+        piecesPerCube: 8, // Number of debris pieces per falling cube
+        maxActiveDebris: 100, // Pool limit
+        gravity: 400, // Slowed down from 1500
+        maxSpeed: 600, // Slowed down from 2000
+        randomVelocityRange: 30, // Reduced from 50
+        randomRotationSpeed: 1.5, // Slowed from 3
+    };
+
+    // Simple debris material (solid color, no textures for performance)
+    const debrisMaterial = new BABYLON.PBRMaterial("debrisMat", scene);
+    debrisMaterial.albedoColor = new BABYLON.Color3(0.12, 0.11, 0.15); // Dark asphalt color
+    debrisMaterial.roughness = 0.9;
+    debrisMaterial.metallic = 0.0;
+    debrisMaterial.freeze();
+
+    // Source debris mesh
+    const sourceDebris = BABYLON.MeshBuilder.CreateBox(
+        "debrisSource",
+        { size: DEBRIS_CONFIG.pieceSize },
+        scene
+    );
+    sourceDebris.material = debrisMaterial;
+    sourceDebris.isVisible = false;
+
+    interface DebrisPiece {
+        mesh: BABYLON.InstancedMesh;
+        active: boolean;
+        velocity: BABYLON.Vector3;
+        rotationSpeed: BABYLON.Vector3;
+    }
+
+    const debrisPool: DebrisPiece[] = [];
+    const activeDebris: DebrisPiece[] = [];
+
+    function getDebrisPiece(): DebrisPiece | null {
+        // Try to find inactive piece in pool
+        const inactive = debrisPool.find(d => !d.active);
+        if (inactive) return inactive;
+
+        // Create new if under limit
+        if (debrisPool.length < DEBRIS_CONFIG.maxActiveDebris) {
+            const mesh = sourceDebris.createInstance(`debris_${debrisPool.length}`);
+            mesh.isVisible = false;
+            const piece: DebrisPiece = {
+                mesh,
+                active: false,
+                velocity: BABYLON.Vector3.Zero(),
+                rotationSpeed: BABYLON.Vector3.Zero(),
+            };
+            debrisPool.push(piece);
+            return piece;
+        }
+
+        return null;
+    }
+
+    function spawnDebris(x: number, y: number, z: number) {
+        const halfSize = CONFIG.cubeSize / 2;
+        const pieceHalf = DEBRIS_CONFIG.pieceSize / 2;
+
+        for (let i = 0; i < DEBRIS_CONFIG.piecesPerCube; i++) {
+            const piece = getDebrisPiece();
+            if (!piece) break;
+
+            // Random position - WIDE spread (1.5x cube bounds)
+            const offsetX = (Math.random() - 0.5) * CONFIG.cubeSize * 1.5;
+            const offsetZ = (Math.random() - 0.5) * CONFIG.cubeSize * 1.5;
+            const offsetY = (Math.random() - 0.5) * halfSize;
+
+            piece.mesh.position.set(
+                x + offsetX,
+                y + offsetY,
+                z + offsetZ
+            );
+
+            // Outward velocity - debris flies away from center (stronger)
+            piece.velocity = new BABYLON.Vector3(
+                offsetX * 3 + (Math.random() - 0.5) * DEBRIS_CONFIG.randomVelocityRange,
+                -Math.random() * 30, // Initial downward velocity (slower)
+                offsetZ * 3 + (Math.random() - 0.5) * DEBRIS_CONFIG.randomVelocityRange
+            );
+
+            // Random rotation speed
+            piece.rotationSpeed = new BABYLON.Vector3(
+                (Math.random() - 0.5) * DEBRIS_CONFIG.randomRotationSpeed,
+                (Math.random() - 0.5) * DEBRIS_CONFIG.randomRotationSpeed,
+                (Math.random() - 0.5) * DEBRIS_CONFIG.randomRotationSpeed
+            );
+
+            piece.mesh.rotation = new BABYLON.Vector3(
+                Math.random() * Math.PI * 2,
+                Math.random() * Math.PI * 2,
+                Math.random() * Math.PI * 2
+            );
+
+            // Random scale - varied size debris (0.5x to 1.5x base size)
+            const randomScale = 0.5 + Math.random() * 1.0;
+            piece.mesh.scaling.setAll(randomScale);
+
+            piece.mesh.isVisible = true;
+            piece.active = true;
+            activeDebris.push(piece);
+        }
+    }
+
+    function updateDebris(dt: number, scrollMovement: number) {
+        for (let i = activeDebris.length - 1; i >= 0; i--) {
+            const piece = activeDebris[i];
+
+            // Apply gravity
+            piece.velocity.y -= DEBRIS_CONFIG.gravity * dt;
+            piece.velocity.y = Math.max(piece.velocity.y, -DEBRIS_CONFIG.maxSpeed);
+
+            // Move with scroll + own velocity
+            piece.mesh.position.x += piece.velocity.x * dt;
+            piece.mesh.position.y += piece.velocity.y * dt;
+            piece.mesh.position.z += piece.velocity.z * dt + scrollMovement;
+
+            // Rotate
+            piece.mesh.rotation.x += piece.rotationSpeed.x * dt;
+            piece.mesh.rotation.y += piece.rotationSpeed.y * dt;
+            piece.mesh.rotation.z += piece.rotationSpeed.z * dt;
+
+            // Despawn if too far down or behind
+            if (piece.mesh.position.y < -200 || piece.mesh.position.z > 100) {
+                piece.active = false;
+                piece.mesh.isVisible = false;
+                activeDebris.splice(i, 1);
+            }
+        }
+    }
+
+
+    // ----------------------------------------------------------
     // SHADOW CATCHER GROUND PLANE
     // Large white plane beneath the cubes to catch shadows
     // Follows the camera to always be visible
@@ -387,6 +525,9 @@ export function createFallingCubeRoad(
         const dt = scene.getEngine().getDeltaTime() / 1000;
         const movement = speed * dt;
 
+        // Update debris pieces
+        updateDebris(dt, movement);
+
         // Player is always at Z=0 in this game (world scrolls toward them)
         const playerZ = 0;
 
@@ -413,9 +554,9 @@ export function createFallingCubeRoad(
             // ----------------------------------------------------------
 
             // Thresholds
-            const rearFallZ = CONFIG.cubeSize * 0.5; // Start falling immediately behind player (was 1.5)
+            const rearFallZ = CONFIG.cubeSize * 2; // Fall further behind player (was 0.5)
             // Limit to ~3 rows falling behind the player before recycling
-            const recycleZ = CONFIG.cubeSize * 4.5;
+            const recycleZ = CONFIG.cubeSize * 5;
 
             // A) Trigger Fall Behind Player - AGGRESSIVE FALLING
             // All cubes fall quickly once behind, minimal delay
@@ -429,6 +570,16 @@ export function createFallingCubeRoad(
 
             if (!DEBUG_DISABLE_HOLES && cube.instance.position.z > triggerZ && cube.state === "active") {
                 cube.state = "falling";
+
+                // Spawn debris for visual crumbling effect
+                spawnDebris(
+                    cube.instance.position.x,
+                    cube.instance.position.y,
+                    cube.instance.position.z
+                );
+
+                // Hide the original cube immediately (debris replaces it visually)
+                cube.instance.isVisible = false;
             }
 
             // B) Loop when very far behind
@@ -715,6 +866,15 @@ export function createFallingCubeRoad(
         shadowCatcherPlane.dispose();
         shadowCatcherMaterial.dispose();
         fallenCubePositions.clear();
+
+        // Dispose debris system
+        for (const piece of debrisPool) {
+            piece.mesh.dispose();
+        }
+        debrisPool.length = 0;
+        activeDebris.length = 0;
+        sourceDebris.dispose();
+        debrisMaterial.dispose();
 
         console.log("🗑️ Falling cube road disposed");
     }

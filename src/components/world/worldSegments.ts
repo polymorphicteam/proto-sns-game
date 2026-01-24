@@ -31,7 +31,7 @@ export function createWorldSegments(
   onSpacingReady?: (spacing: number) => void // <--- Added optional callback
 ): WorldSegments {
   // CONFIG
-  const targetSegmentCount = 4; // Extended to cover full road horizon
+  const targetSegmentCount = 2; // OPTIMIZED: Reduced from 4 to reduce draw calls
   const groundWidth = 350;   // Widened to add sidewalk space for parked cars
   const groundLength = 160;
   const environmentScale = 8;
@@ -334,6 +334,7 @@ export function createWorldSegments(
   sidewalkMat.albedoColor = new BABYLON.Color3(0.4, 0.4, 0.4);
   sidewalkMat.roughness = 1.0;
   sidewalkMat.metallic = 0.0;
+  sidewalkMat.freeze(); // Freeze material for performance
 
   // Road is 150 units wide centered at 0. Sidewalks go from road edge outward.
   const roadHalfWidth = 75; // Match actual road width (150/2)
@@ -388,6 +389,7 @@ export function createWorldSegments(
     extensionMat.albedoColor = new BABYLON.Color3(0.08, 0.075, 0.11); // Dark road color
     extensionMat.roughness = 0.9;
     extensionMat.metallic = 0.0;
+    extensionMat.freeze(); // Freeze material for performance
 
     // Create the extension plane
     const extension = BABYLON.MeshBuilder.CreateBox(
@@ -399,22 +401,31 @@ export function createWorldSegments(
     extension.position.set(0, -0.5, startZ - extensionLength / 2);
     extension.receiveShadows = true;
     extension.isPickable = false;
+    extension.freezeWorldMatrix(); // Freeze transform for static mesh
 
-    // Add center line stripes
+    // Add center line stripes using INSTANCING (much fewer draw calls)
     const stripeMat = new BABYLON.StandardMaterial("stripeMat", scene);
     stripeMat.diffuseColor = new BABYLON.Color3(1, 0.84, 0.35); // Yellow stripe
     stripeMat.emissiveColor = new BABYLON.Color3(0.2, 0.17, 0.07);
+    stripeMat.freeze(); // Freeze material for performance
 
+    // Create base stripe mesh (hidden, used for instancing)
+    const stripeBase = BABYLON.MeshBuilder.CreateBox(
+      "stripeBase",
+      { width: 2, height: 0.1, depth: 25 },
+      scene
+    );
+    stripeBase.material = stripeMat;
+    stripeBase.isVisible = false;
+    stripeBase.isPickable = false;
+
+    // Create stripe instances using GPU instancing
     const stripeCount = Math.floor(extensionLength / 60);
     for (let i = 0; i < stripeCount; i++) {
-      const stripe = BABYLON.MeshBuilder.CreateBox(
-        `stripe_${i}`,
-        { width: 2, height: 0.1, depth: 25 },
-        scene
-      );
-      stripe.material = stripeMat;
+      const stripe = stripeBase.createInstance(`stripe_${i}`);
       stripe.position.set(0, 0.1, startZ - 30 - i * 60);
       stripe.isPickable = false;
+      stripe.freezeWorldMatrix(); // Freeze each instance
     }
   }
 
@@ -424,7 +435,7 @@ export function createWorldSegments(
   // STYLIZED TREES ALONG SIDEWALKS (GLB Model)
   // ---------------------------------------------
   const treeRoots: BABYLON.TransformNode[] = [];
-  const treeSpacing = 80;  // Base distance between trees
+  const treeSpacing = 160;  // OPTIMIZED: Increased from 80 to reduce tree count
   const treeY = 3;         // Raise trees to sit on sidewalk
   const treeScale = 51;    // Scale factor for the GLB model (39 * 1.3)
   let treeContainer: BABYLON.AssetContainer | null = null;
@@ -523,6 +534,7 @@ export function createWorldSegments(
   markerMat.emissiveColor = new BABYLON.Color3(0.3, 0.25, 0.0); // Slight glow
   markerMat.roughness = 0.6;
   markerMat.metallic = 0.0;
+  markerMat.freeze(); // Freeze material for performance
 
   function createRoadMarkers() {
     const totalDistance = 2000; // Cover a long stretch

@@ -4,6 +4,7 @@ import { useGameStore } from '../../store/gameStore';
 import { LoadingScreen } from './LoadingScreen';
 import { CountdownOverlay } from './CountdownOverlay';
 import { OutroScreen } from './OutroScreen';
+import PerformanceMonitor from './PerformanceMonitor';
 import '../../styles/main.css';
 
 /**
@@ -45,6 +46,8 @@ export const GameOverlay: React.FC = () => {
 
     return (
         <div className="game-overlay-container">
+            {/* Performance Monitor - Press ` to toggle */}
+            <PerformanceMonitor />
             {/* Countdown Overlay */}
             <CountdownOverlay />
             <div className="top-hud">

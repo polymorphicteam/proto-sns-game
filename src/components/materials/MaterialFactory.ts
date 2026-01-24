@@ -107,7 +107,7 @@ export function getGroundMaterial(scene: BABYLON.Scene): BABYLON.PBRMaterial {
     mat.roughness = MATERIAL_CONFIGS.ground.roughness;
 
     materialCache.set(key, mat);
-    // mat.freeze(); // Disabled for mobile stability
+    mat.freeze(); // Freeze for performance (ground is static)
     return mat;
 }
 
@@ -127,7 +127,7 @@ export function getCoinMaterial(scene: BABYLON.Scene): BABYLON.PBRMaterial {
     mat.roughness = MATERIAL_CONFIGS.coin.roughness;
 
     materialCache.set(key, mat);
-    // mat.freeze(); // Optimize: frozen removed for mobile stability
+    mat.freeze(); // Freeze for performance (coin appearance is static)
     return mat;
 }
 
@@ -151,7 +151,7 @@ export function getObstacleMaterial(
     mat.roughness = MATERIAL_CONFIGS.obstacle.roughness;
 
     materialCache.set(key, mat);
-    // mat.freeze(); // Optimize: frozen removed for mobile stability
+    mat.freeze(); // Freeze for performance (obstacle materials are static)
     return mat;
 }
 
@@ -178,7 +178,7 @@ export function getBuildingMaterial(
     mat.roughness = MATERIAL_CONFIGS.building.roughness;
 
     materialCache.set(key, mat);
-    // mat.freeze(); // Optimize: frozen removed for mobile stability
+    mat.freeze(); // Freeze for performance (building materials are static)
     return mat;
 }
 
@@ -300,7 +300,7 @@ export function getHamburgerMaterial(
     mat.roughness = MATERIAL_CONFIGS.hamburger.roughness;
 
     materialCache.set(key, mat);
-    // mat.freeze(); // Disabled for mobile stability
+    mat.freeze(); // Freeze for performance (hamburger materials are static)
     return mat;
 }
 
@@ -345,6 +345,7 @@ export function getLayeredRoadMaterial(scene: BABYLON.Scene): BABYLON.MultiMater
     asphaltMat.albedoTexture = new BABYLON.Texture("./scene/assets/road/asphalt_top.png", scene);
     asphaltMat.metallic = 0.0;
     asphaltMat.roughness = 0.8;
+    asphaltMat.freeze(); // Freeze for performance
 
     // 2. Dirt Sides (with Asphalt Top Thickness)
     const asphaltDirtSideMat = new BABYLON.PBRMaterial("asphaltDirtSideMat", scene);
@@ -358,12 +359,14 @@ export function getLayeredRoadMaterial(scene: BABYLON.Scene): BABYLON.MultiMater
     // }
     asphaltDirtSideMat.metallic = 0.0;
     asphaltDirtSideMat.roughness = 0.9;
+    asphaltDirtSideMat.freeze(); // Freeze for performance
 
     // 3. Dirt Bottom (Pure Dirt)
     const dirtBottomMat = new BABYLON.PBRMaterial("dirtBottomMat", scene);
     dirtBottomMat.albedoTexture = new BABYLON.Texture("./scene/assets/road/dirt_sides.png", scene);
     dirtBottomMat.metallic = 0.0;
     dirtBottomMat.roughness = 0.9;
+    dirtBottomMat.freeze(); // Freeze for performance
 
     // Create MultiMaterial
     const multiMat = new BABYLON.MultiMaterial(multiMatKey, scene);

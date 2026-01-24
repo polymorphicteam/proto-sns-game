@@ -14,6 +14,17 @@ export function createScene(canvas: HTMLCanvasElement) {
 
     const scene = new BABYLON.Scene(engine);
 
+    // ==========================================================================
+    // PERFORMANCE OPTIMIZATIONS (Safe optimizations only)
+    // ==========================================================================
+
+    // Skip pointer picking for better CPU performance (we handle input manually)
+    scene.skipPointerMovePicking = true;
+    scene.skipPointerDownPicking = true;
+    scene.skipPointerUpPicking = true;
+
+    // ==========================================================================
+
     // Create environment texture for PBR reflections
     // This enables reflections on metallic/shiny surfaces
     scene.environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(

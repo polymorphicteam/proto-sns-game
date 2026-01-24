@@ -104,7 +104,7 @@ export function babylonRunner(canvas: HTMLCanvasElement) {
   // SKY DOME (Disabled)
   // --------------------------------------------
   const { skyDome } = createSkyDome(scene, assetBase);
-  skyDome.isVisible = false; // Temporarily disabled for debugging
+  skyDome.isVisible = true;
 
   // --------------------------------------------
   // VICTORY CELEBRATION VFX - REMOVED (Static Outro Screen used instead)
@@ -471,6 +471,10 @@ Target: (${camera.target.x.toFixed(1)}, ${camera.target.y.toFixed(1)}, ${camera.
 
     engine?.dispose();
   });
+
+  // Expose engine/scene globally for performance monitoring
+  (window as any).__BABYLON_ENGINE__ = engine;
+  (window as any).__BABYLON_SCENE__ = scene;
 
   return { engine, scene };
 }
