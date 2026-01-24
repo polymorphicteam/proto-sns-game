@@ -475,7 +475,18 @@ Target: (${camera.target.x.toFixed(1)}, ${camera.target.y.toFixed(1)}, ${camera.
   // --------------------------------------------
   // CLEANUP
   // --------------------------------------------
+
+  // Define handler for easy removal
+  const stopRenderHandler = () => {
+    engine?.stopRenderLoop();
+    console.log("🛑 Render loop stopped for VFX");
+  };
+
+  // Add listener for VFX overlay
+  window.addEventListener("stopRenderLoop", stopRenderHandler);
+
   window.addEventListener("beforeunload", () => {
+    window.removeEventListener("stopRenderLoop", stopRenderHandler);
     window.removeEventListener("resize", onResize);
     window.removeEventListener("keydown", onKeyDown);
     window.removeEventListener("keyup", onKeyUp);

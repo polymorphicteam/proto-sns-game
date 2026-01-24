@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { FireworksOverlay } from './vfx/FireworksOverlay';
 
 /**
  * CONFIGURAZIONE VIDEO
  */
 const VIDEO_CONFIG = {
-    scale: 0.6,
+    scale: 0.8,
     offsetX: 0,
     offsetY: 150
 };
@@ -21,8 +22,36 @@ const BUTTON_CONFIG = {
 };
 
 export const OutroScreen: React.FC = () => {
+
+    useEffect(() => {
+        // Stop BabylonJS render loop immediately to save resources
+        // and prevent interference with React overlay
+        console.log("🛑 Dispatching stopRenderLoop for Victory Screen");
+        window.dispatchEvent(new Event("stopRenderLoop"));
+    }, []);
+
     return (
         <div className="outro-screen">
+            {/* Livello 1: VFX */}
+            <FireworksOverlay />
+
+            {/* Livello 1.5: Overlay Image */}
+            <img
+                src="/OutroOverlay.png"
+                alt="Outro Overlay"
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'fill',
+                    pointerEvents: 'none',
+                    zIndex: 2 // Layer 2: Above VFX
+                }}
+            />
+
+            {/* Livello 2: Video */}
             <video
                 src="/DanceOutro.webm"
                 autoPlay
@@ -36,10 +65,12 @@ export const OutroScreen: React.FC = () => {
                     height: '100%',
                     objectFit: 'contain',
                     pointerEvents: 'none',
+                    zIndex: 3, // Layer 3: Above Overlay
                     transform: `translate(calc(-50% + ${VIDEO_CONFIG.offsetX}px), calc(-50% + ${VIDEO_CONFIG.offsetY}px)) scale(${VIDEO_CONFIG.scale})`
                 }}
             />
 
+            {/* Livello 3: Play Again Button */}
             <img
                 src="/PlayAgainButton.png"
                 alt="Restart"
@@ -57,7 +88,7 @@ export const OutroScreen: React.FC = () => {
 
                     // Interazione e Stile
                     cursor: 'pointer',
-                    zIndex: BUTTON_CONFIG.zIndex,
+                    zIndex: BUTTON_CONFIG.zIndex, // Layer 3 (10): Topmost
                     pointerEvents: 'auto' // Fondamentale per ricevere il click
                 }}
             />
