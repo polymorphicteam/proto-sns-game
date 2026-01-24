@@ -506,6 +506,7 @@ export function createWorldSegments(
     console.log(`🌳 Created ${treeRoots.length} trees from GLB`);
   }
 
+  /* 
   // Load tree GLB model
   BABYLON.SceneLoader.LoadAssetContainerAsync("/scene/assets/model/tree.glb", "", scene)
     .then((container) => {
@@ -516,6 +517,7 @@ export function createWorldSegments(
     .catch((err) => {
       console.error("Failed to load tree.glb:", err);
     });
+  */
 
   // ---------------------------------------------
   // YELLOW CENTER LINE MARKERS

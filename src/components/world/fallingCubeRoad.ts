@@ -191,21 +191,33 @@ export function createFallingCubeRoad(
         randomRotationSpeed: 1.5, // Slowed from 3
     };
 
-    // Simple debris material (solid color, no textures for performance)
-    const debrisMaterial = new BABYLON.PBRMaterial("debrisMat", scene);
-    debrisMaterial.albedoColor = new BABYLON.Color3(0.12, 0.11, 0.15); // Dark asphalt color
-    debrisMaterial.roughness = 0.9;
-    debrisMaterial.metallic = 0.0;
-    debrisMaterial.freeze();
-
-    // Source debris mesh
+    // Source debris mesh configuration
     const sourceDebris = BABYLON.MeshBuilder.CreateBox(
         "debrisSource",
         { size: DEBRIS_CONFIG.pieceSize },
         scene
     );
-    sourceDebris.material = debrisMaterial;
+    sourceDebris.material = layeredMaterial; // Use the same multi-material as road
     sourceDebris.isVisible = false;
+
+    // Apply same UV rotation as sourceCube for side texture consistency
+    const debrisUvs = sourceDebris.getVerticesData(BABYLON.VertexBuffer.UVKind);
+    if (debrisUvs) {
+        // FACES 2 & 3: Right/Left (Indices 16-31) -> Rotate -90
+        for (let i = 16; i < 32; i += 2) {
+            const u = debrisUvs[i];
+            const v = debrisUvs[i + 1];
+            debrisUvs[i] = v;
+            debrisUvs[i + 1] = 1 - u;
+        }
+        sourceDebris.setVerticesData(BABYLON.VertexBuffer.UVKind, debrisUvs);
+    }
+
+    // Configure SubMeshes for the layered look (matching sourceCube)
+    sourceDebris.subMeshes = [];
+    new BABYLON.SubMesh(0, 0, sourceDebris.getTotalVertices(), 0, 24, sourceDebris);  // Sides (Asphalt-Dirt)
+    new BABYLON.SubMesh(2, 0, sourceDebris.getTotalVertices(), 30, 6, sourceDebris);  // Bottom (Pure Dirt)
+    new BABYLON.SubMesh(1, 0, sourceDebris.getTotalVertices(), 24, 6, sourceDebris);  // Top (Pure Asphalt)
 
     interface DebrisPiece {
         mesh: BABYLON.InstancedMesh;
@@ -874,7 +886,6 @@ export function createFallingCubeRoad(
         debrisPool.length = 0;
         activeDebris.length = 0;
         sourceDebris.dispose();
-        debrisMaterial.dispose();
 
         console.log("🗑️ Falling cube road disposed");
     }

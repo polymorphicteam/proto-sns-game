@@ -155,13 +155,16 @@ export function setupPlayerController(
 
     if (!jumpMotion.active) {
       // If falling in a gap, allow gravity to continue pulling down
-      if (isFallingInGap) {
+      // Note: Death fall is now handled at the top of the main update loop for priority.
+      if (isFallingInGap && useGameStore.getState().gameState === "playing") {
         jumpMotion.velocity += jumpMotion.gravity * dt;
         playerRoot.position.y += jumpMotion.velocity * dt;
         return;
       }
 
-      if (playerRoot.position.y !== baseY) playerRoot.position.y = baseY;
+      if (playerRoot.position.y !== baseY && useGameStore.getState().gameState === "playing") {
+        playerRoot.position.y = baseY;
+      }
       return;
     }
 
@@ -274,8 +277,9 @@ export function setupPlayerController(
   function updatePlatformRaycast() {
     if (!playerRoot) return;
 
-    // 🔥 Fix: disabilita raycast piattaforme durante caduta o rialzata
-    if (stateMachine?.currentState === "Fall" || stateMachine?.currentState === "Getup") {
+    // 🔥 Fix: disabilita raycast piattaforme durante caduta, rialzata o morte
+    const isGameOver = useGameStore.getState().gameState === "gameover";
+    if (isGameOver || stateMachine?.currentState === "Fall" || stateMachine?.currentState === "Getup" || stateMachine?.currentState === "Death") {
       platformRayHelper?.hide();
       return;
     }
@@ -464,7 +468,8 @@ export function setupPlayerController(
       console.log("💀 GAME OVER - No lives remaining");
 
       jumpMotion.active = false;
-      jumpMotion.velocity = 0;
+      jumpMotion.velocity = -50; // Start falling immediately
+      isFallingInGap = true;    // Enable physical gravity
       invulnerabilityTimer = INVULNERABILITY_AFTER_HIT;
       stateMachine.setPlayerState("Death", true);
       return;
@@ -807,20 +812,35 @@ export function setupPlayerController(
 
     // GAME OVER HANDLING - React to gameState changes
     if (store.gameState === "gameover") {
-      // Ensure player is in Death state and everything stops
+      const dt = scene.getEngine().getDeltaTime() / 1000;
+
+      // Ensure player is in Death state
       if (stateMachine.currentState !== "Death") {
         console.log("🎮 Game Over detected - setting player to Death state");
-        jumpMotion.active = false;
-        jumpMotion.velocity = 0;
         bounceBackActive = false;
         bounceBackTimer = 0;
         setScrollSpeed(0);
         stateMachine.setPlayerState("Death", true);
-      }
-      return; // Skip all other updates when game is over
-    }
 
-    updateMovementState();
+        // Start falling physics
+        jumpMotion.active = false;
+        jumpMotion.velocity = -50;
+        isFallingInGap = true;
+      }
+
+      // 💀 FORCE FALL LOGIC - Highest Priority
+      jumpMotion.velocity += jumpMotion.gravity * dt;
+      playerRoot.position.y += jumpMotion.velocity * dt;
+
+      if (Math.random() < 0.1) {
+        console.log(`💀 [DEATH FALL] Y: ${playerRoot.position.y.toFixed(2)} | Vel: ${jumpMotion.velocity.toFixed(2)}`);
+      }
+
+      // Early exit for gameover to skip regular movement/collision
+      // But we call some late-stage cleanup like metadata update below
+    } else {
+      updateMovementState();
+    }
 
     const dt = scene.getEngine().getDeltaTime() / 1000;
     invulnerabilityTimer = Math.max(0, invulnerabilityTimer - dt);
