@@ -3,20 +3,22 @@ import { FireworksOverlay } from './vfx/FireworksOverlay';
 
 /**
  * CONFIGURAZIONE VIDEO
+ * I valori di offset sono ora in PERCENTUALE rispetto al contenitore
  */
 const VIDEO_CONFIG = {
     scale: 0.8,
-    offsetX: 0,
-    offsetY: 150
+    offsetX: 0,    // % orizzontale
+    offsetY: 18    // % verticale (approx 150px su schermi medi)
 };
 
 /**
  * CONFIGURAZIONE BANDIERA
+ * I valori di offset sono ora in PERCENTUALE rispetto al contenitore
  */
 const FLAG_CONFIG = {
     scale: 0.6,
-    offsetX: -70,
-    offsetY: -240
+    offsetX: -14,  // % orizzontale (approx -70px)
+    offsetY: -28   // % verticale (approx -240px)
 };
 
 /**
@@ -24,8 +26,8 @@ const FLAG_CONFIG = {
  * Qui puoi regolare tutto a tuo piacimento
  */
 const BUTTON_CONFIG = {
-    width: '250px',     // Regola la grandezza (es: '150px', '20%', ecc.)
-    top: '5%',        // Distanza dal bordo superiore (es: '10%', '50px')
+    width: '50%',       // Larghezza in % così scala con lo schermo
+    top: '5%',          // Distanza dal bordo superiore
     left: '70%',        // Centratura orizzontale
     zIndex: 10          // Deve stare sopra il video
 };
@@ -76,7 +78,8 @@ export const OutroScreen: React.FC = () => {
                     objectFit: 'contain',
                     pointerEvents: 'none',
                     zIndex: 3, // Layer 3: Above Overlay
-                    transform: `translate(calc(-50% + ${FLAG_CONFIG.offsetX}px), calc(-50% + ${FLAG_CONFIG.offsetY}px)) scale(${FLAG_CONFIG.scale})`
+                    // Translate usa ora le percentuali (%) invece dei px
+                    transform: `translate(calc(-50% + ${FLAG_CONFIG.offsetX}%), calc(-50% + ${FLAG_CONFIG.offsetY}%)) scale(${FLAG_CONFIG.scale})`
                 }}
             />
 
@@ -95,7 +98,8 @@ export const OutroScreen: React.FC = () => {
                     objectFit: 'contain',
                     pointerEvents: 'none',
                     zIndex: 4, // Layer 4: Above Flag
-                    transform: `translate(calc(-50% + ${VIDEO_CONFIG.offsetX}px), calc(-50% + ${VIDEO_CONFIG.offsetY}px)) scale(${VIDEO_CONFIG.scale})`
+                    // Translate usa ora le percentuali (%) invece dei px
+                    transform: `translate(calc(-50% + ${VIDEO_CONFIG.offsetX}%), calc(-50% + ${VIDEO_CONFIG.offsetY}%)) scale(${VIDEO_CONFIG.scale})`
                 }}
             />
 
