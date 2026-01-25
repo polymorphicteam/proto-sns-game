@@ -11,13 +11,22 @@ const VIDEO_CONFIG = {
 };
 
 /**
+ * CONFIGURAZIONE BANDIERA
+ */
+const FLAG_CONFIG = {
+    scale: 0.6,
+    offsetX: -70,
+    offsetY: -240
+};
+
+/**
  * CONFIGURAZIONE PULSANTE RESTART
  * Qui puoi regolare tutto a tuo piacimento
  */
 const BUTTON_CONFIG = {
-    width: '400px',     // Regola la grandezza (es: '150px', '20%', ecc.)
-    top: '50px',        // Distanza dal bordo superiore (es: '10%', '50px')
-    left: '50%',        // Centratura orizzontale
+    width: '250px',     // Regola la grandezza (es: '150px', '20%', ecc.)
+    top: '5%',        // Distanza dal bordo superiore (es: '10%', '50px')
+    left: '70%',        // Centratura orizzontale
     zIndex: 10          // Deve stare sopra il video
 };
 
@@ -51,6 +60,26 @@ export const OutroScreen: React.FC = () => {
                 }}
             />
 
+            {/* Livello 2.5: Flag Video */}
+            <video
+                src="/flag.webm"
+                autoPlay
+                muted
+                loop
+                playsInline
+                style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    pointerEvents: 'none',
+                    zIndex: 3, // Layer 3: Above Overlay
+                    transform: `translate(calc(-50% + ${FLAG_CONFIG.offsetX}px), calc(-50% + ${FLAG_CONFIG.offsetY}px)) scale(${FLAG_CONFIG.scale})`
+                }}
+            />
+
             {/* Livello 2: Video */}
             <video
                 src="/DanceOutro.webm"
@@ -65,7 +94,7 @@ export const OutroScreen: React.FC = () => {
                     height: '100%',
                     objectFit: 'contain',
                     pointerEvents: 'none',
-                    zIndex: 3, // Layer 3: Above Overlay
+                    zIndex: 4, // Layer 4: Above Flag
                     transform: `translate(calc(-50% + ${VIDEO_CONFIG.offsetX}px), calc(-50% + ${VIDEO_CONFIG.offsetY}px)) scale(${VIDEO_CONFIG.scale})`
                 }}
             />
