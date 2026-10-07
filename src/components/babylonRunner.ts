@@ -20,13 +20,14 @@ import { useGameStore } from "../store/gameStore";
 import { initAudioManager, getAudioManager } from "./audio/audioManager";
 
 
-// Draco configuration
+// Draco configuration - decoder files are bundled under public/vendor/babylon/draco
+// so the game needs nothing from cdn.babylonjs.com at runtime.
 if (BABYLON.DracoCompression) {
   BABYLON.DracoCompression.Configuration = {
     decoder: {
-      wasmUrl: "https://cdn.babylonjs.com/draco_wasm_wrapper_gltf.js",
-      wasmBinaryUrl: "https://cdn.babylonjs.com/draco_wasm_wrapper_gltf.wasm",
-      fallbackUrl: "https://cdn.babylonjs.com/draco_decoder_gltf.js",
+      wasmUrl: "vendor/babylon/draco/draco_wasm_wrapper_gltf.js",
+      wasmBinaryUrl: "vendor/babylon/draco/draco_decoder_gltf.wasm",
+      fallbackUrl: "vendor/babylon/draco/draco_decoder_gltf.js",
     },
   };
 }

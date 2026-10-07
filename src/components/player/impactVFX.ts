@@ -36,7 +36,7 @@ export function createImpactVFX(
 
     // Use smoke texture for dust-like appearance
     particleSystem.particleTexture = new BABYLON.Texture(
-        "https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/packages/tools/playground/public/textures/cloud.png",
+        "vendor/babylon/textures/cloud.png",
         scene
     );
 
