@@ -31,7 +31,7 @@ export function createCelebrationVFX(
 
     const confetti = new BABYLON.ParticleSystem("confetti", 500, scene);
     confetti.particleTexture = new BABYLON.Texture(
-        "https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/packages/tools/playground/public/textures/flare.png",
+        "vendor/babylon/textures/flare.png",
         scene
     );
     confetti.emitter = confettiEmitter;
@@ -96,7 +96,7 @@ export function createCelebrationVFX(
 
             const firework = new BABYLON.ParticleSystem(`firework${index}`, 300, scene);
             firework.particleTexture = new BABYLON.Texture(
-                "https://raw.githubusercontent.com/BabylonJS/Babylon.js/master/packages/tools/playground/public/textures/flare.png",
+                "vendor/babylon/textures/flare.png",
                 scene
             );
             firework.emitter = fireworkEmitter;
