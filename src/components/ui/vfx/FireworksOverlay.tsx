@@ -3,6 +3,7 @@ import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import { loadFireworksPreset } from "@tsparticles/preset-fireworks";
 import type { Engine } from "@tsparticles/engine";
+import { getAudioManager } from "../../audio/audioManager";
 
 export const FireworksOverlay: React.FC = () => {
     const [init, setInit] = useState(false);
@@ -20,7 +21,9 @@ export const FireworksOverlay: React.FC = () => {
         audio.volume = 1.0; // Pushed to max safe limit (should sit just under the actual music dynamically)
         audio.loop = true;
         
-        audio.play().catch(e => console.warn("Audio blocked:", e));
+        // Play through the output device the kiosk chose, like every other game sound
+        const routed = getAudioManager()?.applyOutputDevice(audio) ?? Promise.resolve();
+        routed.then(() => audio.play()).catch(e => console.warn("Audio blocked:", e));
         
         const fadeInterval = setInterval(() => {
             if (audio.volume > 0.02) {
