@@ -1,5 +1,6 @@
 // src/services/messagingService.ts
 import { useGameStore } from '../store/gameStore';
+import { initAudioManager } from '../components/audio/audioManager';
 
 /**
  * Interface for messages sent to the parent window
@@ -97,6 +98,17 @@ export class MessagingService {
                 // We notify the parent that we are ready to close
                 this.sendMessage({ type: 'CLOSE_REQUEST', payload: {} });
                 break;
+
+            case 'SET_AUDIO_OUTPUT': {
+                // The kiosk's "Default sounds" device, sent when the game loads. Null means the system default.
+                const payload = event.data.payload ?? {};
+                const deviceId = typeof payload.deviceId === 'string' ? payload.deviceId : null;
+                const label = typeof payload.label === 'string' ? payload.label : null;
+                console.log('✉️ Command received: Setting audio output');
+                // initAudioManager, not getAudioManager: this can arrive before the scene creates the manager
+                void initAudioManager().setOutputDevice(deviceId, label);
+                break;
+            }
 
             default:
                 // Handle other messages as needed

@@ -13,6 +13,8 @@ export interface AudioManagerController {
     setMusicVolume(volume: number): void;
     setSFXVolume(volume: number): void;
     unlockAudio(): void;
+    setOutputDevice(deviceId: string | null, label: string | null): Promise<void>;
+    applyOutputDevice(audio: HTMLAudioElement): Promise<void>;
     dispose(): void;
 }
 
@@ -48,6 +50,101 @@ export function createAudioManager(): AudioManagerController {
     // Cache for loaded audio elements
     const audioCache: Map<string, HTMLAudioElement> = new Map();
 
+    // Output device chosen by the kiosk ("" = system default). Device ids are scoped to each origin, so the kiosk
+    // sends the device's label too and the matching id in this page is looked up from it.
+    let sinkId = "";
+    let requestedOutput: { deviceId: string | null; label: string | null } | null = null;
+    let outputRequestCount = 0;
+
+    function needsRouting(audio: HTMLAudioElement): boolean {
+        return typeof audio.setSinkId === "function" && audio.sinkId !== sinkId;
+    }
+
+    /**
+     * Route an audio element to the chosen output device.
+     * Browsers without setSinkId keep playing through the system default.
+     */
+    function applyOutputDevice(audio: HTMLAudioElement): Promise<void> {
+        if (!needsRouting(audio)) return Promise.resolve();
+
+        return audio.setSinkId(sinkId).catch((err) => {
+            console.warn("⚠️ Could not route audio to the chosen output device", err);
+        });
+    }
+
+    async function listOutputDevices(): Promise<MediaDeviceInfo[]> {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        return devices.filter((device) => device.kind === "audiooutput");
+    }
+
+    /**
+     * Find the kiosk's device in this page's own device list: by id when both share an origin (local dev, or
+     * Chrome's "default"), otherwise by label. No match means the system default.
+     */
+    async function resolveSinkId(deviceId: string | null, label: string | null): Promise<string> {
+        if (!deviceId || !navigator.mediaDevices?.enumerateDevices) return "";
+
+        let outputs = await listOutputDevices();
+
+        const sameId = outputs.find((device) => device.deviceId === deviceId);
+        if (sameId) return sameId.deviceId;
+
+        if (!label) {
+            console.warn("⚠️ Output device has no label to match, using the system default");
+            return "";
+        }
+
+        // Labels stay hidden until this page has microphone access. The kiosk lends its permission through the
+        // iframe's allow attribute, so this does not prompt; the stream is closed straight away.
+        if (outputs.every((device) => !device.label)) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach((track) => track.stop());
+                outputs = await listOutputDevices();
+            } catch (err) {
+                console.warn("⚠️ No microphone access, output device labels are hidden", err);
+            }
+        }
+
+        const sameLabel = outputs.find((device) => device.label === label);
+        if (!sameLabel) {
+            console.warn(`⚠️ Output device "${label}" not found, using the system default`);
+            return "";
+        }
+        return sameLabel.deviceId;
+    }
+
+    /**
+     * Play every game sound through the output device chosen by the kiosk. Null means the system default.
+     */
+    async function setOutputDevice(deviceId: string | null, label: string | null): Promise<void> {
+        requestedOutput = { deviceId, label };
+        const request = ++outputRequestCount;
+
+        let resolved = "";
+        try {
+            resolved = await resolveSinkId(deviceId, label);
+        } catch (err) {
+            console.warn("⚠️ Could not read output devices, using the system default", err);
+        }
+
+        // A newer request arrived while this one was reading the device list
+        if (request !== outputRequestCount) return;
+
+        sinkId = resolved;
+        console.log(`🔈 Audio output: ${sinkId ? label ?? sinkId : "system default"}`);
+        await Promise.all(Array.from(audioCache.values()).map(applyOutputDevice));
+    }
+
+    // Unplugging the chosen device falls back to the system default; plugging it back in returns to it
+    function handleDeviceChange(): void {
+        if (requestedOutput) {
+            void setOutputDevice(requestedOutput.deviceId, requestedOutput.label);
+        }
+    }
+
+    navigator.mediaDevices?.addEventListener("devicechange", handleDeviceChange);
+
     /**
      * Get or create an audio element
      */
@@ -62,6 +159,7 @@ export function createAudioManager(): AudioManagerController {
         }
 
         const audio = new Audio(url);
+        void applyOutputDevice(audio);
         audioCache.set(name, audio);
         console.log(`🔊 Created audio element: ${name}`);
         return audio;
@@ -192,9 +290,18 @@ export function createAudioManager(): AudioManagerController {
         const clone = audio.cloneNode() as HTMLAudioElement;
         clone.volume = sfxVolume;
 
-        clone.play().catch((err) => {
-            console.error(`❌ Failed to play SFX: ${name}`, err);
-        });
+        const play = () => {
+            clone.play().catch((err) => {
+                console.error(`❌ Failed to play SFX: ${name}`, err);
+            });
+        };
+
+        // cloneNode() does not copy the output device, so route the clone before it starts
+        if (needsRouting(clone)) {
+            void applyOutputDevice(clone).then(play);
+        } else {
+            play();
+        }
     }
 
     /**
@@ -219,6 +326,7 @@ export function createAudioManager(): AudioManagerController {
      */
     function dispose(): void {
         stopMusic();
+        navigator.mediaDevices?.removeEventListener("devicechange", handleDeviceChange);
         audioCache.forEach((audio) => {
             audio.pause();
             audio.src = "";
@@ -236,6 +344,8 @@ export function createAudioManager(): AudioManagerController {
         setMusicVolume,
         setSFXVolume,
         unlockAudio,
+        setOutputDevice,
+        applyOutputDevice,
         dispose,
     };
 }
